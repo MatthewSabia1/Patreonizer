@@ -45,6 +45,8 @@ interface Campaign {
   vanityUrl: string | null;
   patronCount: number;
   pledgeSum: string;
+  actualMonthlyRevenue?: number;
+  actualPatronCount?: number;
   isActive: boolean;
   lastSyncAt: string | null;
   createdAt: string;
