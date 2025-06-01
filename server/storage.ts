@@ -5,6 +5,11 @@ import {
   posts,
   syncStatus,
   revenueData,
+  campaignTiers,
+  campaignGoals,
+  benefits,
+  addresses,
+  webhooks,
   type User,
   type UpsertUser,
   type InsertPatreonCampaign,
@@ -17,6 +22,16 @@ import {
   type SyncStatus,
   type InsertRevenueData,
   type RevenueData,
+  type InsertCampaignTier,
+  type CampaignTier,
+  type InsertCampaignGoal,
+  type CampaignGoal,
+  type InsertBenefit,
+  type Benefit,
+  type InsertAddress,
+  type Address,
+  type InsertWebhook,
+  type Webhook,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql, gte, lte, like, or, inArray, type SQL } from "drizzle-orm";
@@ -53,6 +68,27 @@ export interface IStorage {
   // Revenue data operations
   upsertRevenueData(revenue: InsertRevenueData): Promise<RevenueData>;
   getRevenueData(userId: string, days: number, campaignId?: string): Promise<RevenueData[]>;
+
+  // Campaign tier operations
+  upsertCampaignTier(tier: InsertCampaignTier): Promise<CampaignTier>;
+  getCampaignTiers(campaignId: number): Promise<CampaignTier[]>;
+
+  // Campaign goal operations
+  upsertCampaignGoal(goal: InsertCampaignGoal): Promise<CampaignGoal>;
+  getCampaignGoals(campaignId: number): Promise<CampaignGoal[]>;
+
+  // Benefit operations
+  upsertBenefit(benefit: InsertBenefit): Promise<Benefit>;
+  getCampaignBenefits(campaignId: number): Promise<Benefit[]>;
+
+  // Address operations
+  upsertAddress(address: InsertAddress): Promise<Address>;
+  getPatronAddresses(patronId: number): Promise<Address[]>;
+
+  // Webhook operations
+  upsertWebhook(webhook: InsertWebhook): Promise<Webhook>;
+  getCampaignWebhooks(campaignId: number): Promise<Webhook[]>;
+  deleteWebhook(webhookId: number): Promise<void>;
 
   // Dashboard operations
   getDashboardMetrics(userId: string): Promise<{
@@ -627,6 +663,149 @@ export class DatabaseStorage implements IStorage {
     return activities
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       .slice(0, 10);
+  }
+
+  // Campaign tier operations
+  async upsertCampaignTier(tier: InsertCampaignTier): Promise<CampaignTier> {
+    const [existingTier] = await db
+      .select()
+      .from(campaignTiers)
+      .where(eq(campaignTiers.patreonTierId, tier.patreonTierId));
+
+    if (existingTier) {
+      const [updatedTier] = await db
+        .update(campaignTiers)
+        .set({ ...tier, updatedAt: new Date() })
+        .where(eq(campaignTiers.id, existingTier.id))
+        .returning();
+      return updatedTier;
+    } else {
+      const [newTier] = await db.insert(campaignTiers).values(tier).returning();
+      return newTier;
+    }
+  }
+
+  async getCampaignTiers(campaignId: number): Promise<CampaignTier[]> {
+    return db
+      .select()
+      .from(campaignTiers)
+      .where(eq(campaignTiers.campaignId, campaignId))
+      .orderBy(campaignTiers.amountCents);
+  }
+
+  // Campaign goal operations
+  async upsertCampaignGoal(goal: InsertCampaignGoal): Promise<CampaignGoal> {
+    const [existingGoal] = await db
+      .select()
+      .from(campaignGoals)
+      .where(eq(campaignGoals.patreonGoalId, goal.patreonGoalId));
+
+    if (existingGoal) {
+      const [updatedGoal] = await db
+        .update(campaignGoals)
+        .set({ ...goal, updatedAt: new Date() })
+        .where(eq(campaignGoals.id, existingGoal.id))
+        .returning();
+      return updatedGoal;
+    } else {
+      const [newGoal] = await db.insert(campaignGoals).values(goal).returning();
+      return newGoal;
+    }
+  }
+
+  async getCampaignGoals(campaignId: number): Promise<CampaignGoal[]> {
+    return db
+      .select()
+      .from(campaignGoals)
+      .where(eq(campaignGoals.campaignId, campaignId))
+      .orderBy(campaignGoals.amountCents);
+  }
+
+  // Benefit operations
+  async upsertBenefit(benefit: InsertBenefit): Promise<Benefit> {
+    const [existingBenefit] = await db
+      .select()
+      .from(benefits)
+      .where(eq(benefits.patreonBenefitId, benefit.patreonBenefitId));
+
+    if (existingBenefit) {
+      const [updatedBenefit] = await db
+        .update(benefits)
+        .set({ ...benefit, updatedAt: new Date() })
+        .where(eq(benefits.id, existingBenefit.id))
+        .returning();
+      return updatedBenefit;
+    } else {
+      const [newBenefit] = await db.insert(benefits).values(benefit).returning();
+      return newBenefit;
+    }
+  }
+
+  async getCampaignBenefits(campaignId: number): Promise<Benefit[]> {
+    return db
+      .select()
+      .from(benefits)
+      .where(eq(benefits.campaignId, campaignId))
+      .orderBy(benefits.patreonCreatedAt);
+  }
+
+  // Address operations
+  async upsertAddress(address: InsertAddress): Promise<Address> {
+    const [existingAddress] = await db
+      .select()
+      .from(addresses)
+      .where(eq(addresses.patronId, address.patronId));
+
+    if (existingAddress) {
+      const [updatedAddress] = await db
+        .update(addresses)
+        .set({ ...address, updatedAt: new Date() })
+        .where(eq(addresses.id, existingAddress.id))
+        .returning();
+      return updatedAddress;
+    } else {
+      const [newAddress] = await db.insert(addresses).values(address).returning();
+      return newAddress;
+    }
+  }
+
+  async getPatronAddresses(patronId: number): Promise<Address[]> {
+    return db
+      .select()
+      .from(addresses)
+      .where(eq(addresses.patronId, patronId));
+  }
+
+  // Webhook operations
+  async upsertWebhook(webhook: InsertWebhook): Promise<Webhook> {
+    const [existingWebhook] = await db
+      .select()
+      .from(webhooks)
+      .where(eq(webhooks.patreonWebhookId, webhook.patreonWebhookId));
+
+    if (existingWebhook) {
+      const [updatedWebhook] = await db
+        .update(webhooks)
+        .set({ ...webhook, updatedAt: new Date() })
+        .where(eq(webhooks.id, existingWebhook.id))
+        .returning();
+      return updatedWebhook;
+    } else {
+      const [newWebhook] = await db.insert(webhooks).values(webhook).returning();
+      return newWebhook;
+    }
+  }
+
+  async getCampaignWebhooks(campaignId: number): Promise<Webhook[]> {
+    return db
+      .select()
+      .from(webhooks)
+      .where(eq(webhooks.campaignId, campaignId))
+      .orderBy(webhooks.createdAt);
+  }
+
+  async deleteWebhook(webhookId: number): Promise<void> {
+    await db.delete(webhooks).where(eq(webhooks.id, webhookId));
   }
 }
 
