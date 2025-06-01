@@ -19,10 +19,9 @@ import type { PatreonCampaign, User } from "@/lib/types";
 const navigation = [
   { name: "Dashboard", href: "/", icon: ChartArea },
   { name: "Patron Data", href: "/patrons", icon: Users },
-  { name: "Revenue Analytics", href: "/revenue", icon: DollarSign },
-  { name: "Post Performance", href: "/posts", icon: FileText },
+  { name: "Post Analytics", href: "/posts", icon: FileText },
   { name: "Connected Pages", href: "/connected-pages", icon: Link2 },
-  { name: "Export Data", href: "/export", icon: Download },
+  { name: "Settings", href: "/settings", icon: Settings },
 ];
 
 interface SidebarProps {

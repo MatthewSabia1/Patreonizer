@@ -137,7 +137,7 @@ export default function Settings() {
   });
 
   // Fetch campaigns for data overview
-  const { data: campaigns = [] } = useQuery({
+  const { data: campaigns = [] } = useQuery<any[]>({
     queryKey: ["/api/campaigns"],
     retry: false,
   });
@@ -145,10 +145,14 @@ export default function Settings() {
   // Save settings mutation
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: AppSettings) => {
-      return apiRequest('/api/settings', {
+      const response = await fetch('/api/settings', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(newSettings),
       });
+      if (!response.ok) throw new Error("Failed to save settings");
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -215,9 +219,12 @@ export default function Settings() {
   // Delete account mutation
   const deleteAccountMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('/api/auth/delete-account', {
+      const response = await fetch('/api/auth/delete-account', {
         method: 'DELETE',
+        credentials: 'include',
       });
+      if (!response.ok) throw new Error("Failed to delete account");
+      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -246,7 +253,7 @@ export default function Settings() {
     setSettings(prev => ({
       ...prev,
       [section]: {
-        ...prev[section],
+        ...(prev[section] as any),
         [key]: value
       }
     }));

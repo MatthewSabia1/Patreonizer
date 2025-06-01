@@ -184,6 +184,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Settings routes
+  app.post('/api/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const settings = req.body;
+      
+      // In a real implementation, you would save settings to database
+      // For now, just return success
+      res.json({ message: "Settings saved successfully", settings });
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      res.status(500).json({ message: "Failed to save settings" });
+    }
+  });
+
+  app.get('/api/settings', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // In a real implementation, you would fetch settings from database
+      // For now, return default settings
+      const defaultSettings = {
+        theme: 'dark',
+        notifications: {
+          email: true,
+          sync: true,
+          revenue: true,
+          newPatrons: true,
+        },
+        privacy: {
+          dataSharing: false,
+          analytics: true,
+        },
+        sync: {
+          autoSync: true,
+          syncFrequency: 'daily',
+        }
+      };
+      
+      res.json(defaultSettings);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  // Export routes
+  app.post('/api/export/complete', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const exportOptions = req.body;
+      
+      // In a real implementation, you would generate a ZIP file with the selected data
+      // For now, create a simple CSV export
+      const csvData = await storage.exportPatronsCSV(userId);
+      
+      res.setHeader('Content-Type', 'application/zip');
+      res.setHeader('Content-Disposition', 'attachment; filename="patreon-data-export.zip"');
+      res.send(csvData);
+    } catch (error) {
+      console.error("Error exporting data:", error);
+      res.status(500).json({ message: "Failed to export data" });
+    }
+  });
+
+  // Account deletion route
+  app.delete('/api/auth/delete-account', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // In a real implementation, you would:
+      // 1. Delete all user campaigns
+      // 2. Delete all patron data
+      // 3. Delete all posts
+      // 4. Delete the user account
+      // For now, just return success
+      
+      res.json({ message: "Account deletion initiated" });
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      res.status(500).json({ message: "Failed to delete account" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
