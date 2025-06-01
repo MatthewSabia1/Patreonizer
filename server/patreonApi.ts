@@ -63,9 +63,12 @@ class PatreonAPI {
 
   async getUserCampaigns(accessToken: string) {
     const response = await this.makeRequest('/campaigns', accessToken, {
-      'fields[campaign]': 'creation_name,summary,image_url,vanity,patron_count,pledge_sum,published_at,is_monthly,is_charged_immediately,created_at,currency',
-      'include': 'creator',
-      'fields[user]': 'email,first_name,last_name,full_name,image_url',
+      'fields[campaign]': 'creation_name,summary,image_url,vanity,patron_count,pledge_sum,published_at,is_monthly,is_charged_immediately,created_at,currency,main_video_embed,main_video_url,one_liner,pay_per_name,pledge_url,thanks_embed,thanks_msg,thanks_video_url,has_rss,has_sent_rss_notify,rss_feed_title,rss_artwork_url,is_nsfw',
+      'include': 'creator,goals,tiers,benefits',
+      'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,created,is_creator',
+      'fields[goal]': 'amount_cents,title,description,created_at,reached_at,completed_percentage',
+      'fields[tier]': 'title,amount_cents,description,patron_count,remaining,requires_shipping,created_at,edited_at,published_at,unpublished_at,discord_role_ids,image_url',
+      'fields[benefit]': 'title,description,benefit_type,is_delivered,is_published,next_deliverable_due,delivered_deliverables,not_delivered_deliverables,created_at',
     });
     return {
       campaigns: response.data || [],
@@ -77,9 +80,10 @@ class PatreonAPI {
   async getCampaignMembers(accessToken: string, campaignId: string, cursor?: string) {
     const params: any = {
       'fields[member]': 'full_name,email,patron_status,pledge_relationship_start,lifetime_support_cents,currently_entitled_amount_cents,last_charge_date,last_charge_status,will_pay_amount_cents,campaign_lifetime_support_cents,note',
-      'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,is_follower,created,vanity',
-      'fields[tier]': 'title,amount_cents,description,patron_count,remaining,requires_shipping,created_at,edited_at,published_at,unpublished_at',
-      'include': 'user,currently_entitled_tiers',
+      'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,is_follower,created,vanity,about,can_see_nsfw,is_email_verified,is_creator,social_connections',
+      'fields[tier]': 'title,amount_cents,description,patron_count,remaining,requires_shipping,created_at,edited_at,published_at,unpublished_at,discord_role_ids,image_url',
+      'fields[address]': 'addressee,line_1,line_2,postal_code,city,state,country,phone_number,created_at',
+      'include': 'user,currently_entitled_tiers,address',
       'page[count]': '1000',
       'sort': '-pledge_relationship_start',
     };
@@ -359,6 +363,93 @@ class PatreonAPI {
     }
 
     return allData;
+  }
+
+  // Analytics and reporting methods
+  async getCampaignAnalytics(accessToken: string, campaignId: string, startDate?: string, endDate?: string) {
+    const params: any = {
+      'fields[campaign]': 'patron_count,pledge_sum,currency,created_at',
+      'include': 'members,tiers,goals',
+      'fields[member]': 'patron_status,lifetime_support_cents,currently_entitled_amount_cents,pledge_relationship_start',
+      'fields[tier]': 'amount_cents,patron_count',
+      'fields[goal]': 'amount_cents,completed_percentage,reached_at',
+    };
+
+    if (startDate) params['filter[created_after]'] = startDate;
+    if (endDate) params['filter[created_before]'] = endDate;
+
+    const response = await this.makeRequest(`/campaigns/${campaignId}`, accessToken, params);
+    return {
+      campaign: response.data,
+      included: response.included || [],
+    };
+  }
+
+  async getBatchMembers(accessToken: string, memberIds: string[]) {
+    const idsParam = memberIds.join(',');
+    const response = await this.makeRequest('/members', accessToken, {
+      'filter[ids]': idsParam,
+      'fields[member]': 'full_name,email,patron_status,pledge_relationship_start,lifetime_support_cents,currently_entitled_amount_cents,last_charge_date,last_charge_status,will_pay_amount_cents,campaign_lifetime_support_cents,note',
+      'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,is_follower,created,vanity,about,can_see_nsfw,is_email_verified',
+      'include': 'user,currently_entitled_tiers,address',
+    });
+    return {
+      members: response.data || [],
+      included: response.included || [],
+    };
+  }
+
+  async getBatchPosts(accessToken: string, postIds: string[]) {
+    const idsParam = postIds.join(',');
+    const response = await this.makeRequest('/posts', accessToken, {
+      'filter[ids]': idsParam,
+      'fields[post]': 'title,content,url,embed_data,embed_url,image,is_public,is_paid,published_at,edited_at,like_count,comment_count,patreon_url,post_file,post_metadata,app_id,app_status,created_at,updated_at',
+      'include': 'user,campaign,attachments,user_defined_tags,poll',
+    });
+    return {
+      posts: response.data || [],
+      included: response.included || [],
+    };
+  }
+
+  async getCampaignActivity(accessToken: string, campaignId: string, cursor?: string) {
+    const params: any = {
+      'include': 'members,posts,tiers',
+      'fields[member]': 'patron_status,pledge_relationship_start,last_charge_date',
+      'fields[post]': 'title,published_at,like_count,comment_count',
+      'fields[tier]': 'title,amount_cents,patron_count',
+      'page[count]': '500',
+      'sort': '-created_at',
+    };
+
+    if (cursor) {
+      params['page[cursor]'] = cursor;
+    }
+
+    const response = await this.makeRequest(`/campaigns/${campaignId}`, accessToken, params);
+    return {
+      activity: response.data,
+      included: response.included || [],
+      meta: response.meta || {},
+      links: response.links || {},
+    };
+  }
+
+  // Enhanced campaign data with all relationships
+  async getCompleteCampaignData(accessToken: string, campaignId: string) {
+    const response = await this.makeRequest(`/campaigns/${campaignId}`, accessToken, {
+      'fields[campaign]': 'creation_name,summary,image_url,vanity,patron_count,pledge_sum,published_at,is_monthly,is_charged_immediately,created_at,currency,main_video_embed,main_video_url,one_liner,pay_per_name,pledge_url,thanks_embed,thanks_msg,thanks_video_url,has_rss,has_sent_rss_notify,rss_feed_title,rss_artwork_url,is_nsfw,earnings_visibility',
+      'include': 'creator,goals,tiers,benefits,posts',
+      'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,created,is_creator,vanity,about',
+      'fields[goal]': 'amount_cents,title,description,created_at,reached_at,completed_percentage',
+      'fields[tier]': 'title,amount_cents,description,patron_count,remaining,requires_shipping,created_at,edited_at,published_at,unpublished_at,discord_role_ids,image_url,published',
+      'fields[benefit]': 'title,description,benefit_type,is_delivered,is_published,next_deliverable_due,delivered_deliverables,not_delivered_deliverables,created_at',
+      'fields[post]': 'title,content,is_public,is_paid,published_at,like_count,comment_count',
+    });
+    return {
+      campaign: response.data,
+      included: response.included || [],
+    };
   }
 
   // Helper method to validate webhook signatures

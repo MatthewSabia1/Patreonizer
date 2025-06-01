@@ -1,6 +1,15 @@
 import { storage } from "./storage";
 import { patreonApi } from "./patreonApi";
-import type { InsertPatron, InsertPost, InsertRevenueData, PatreonCampaign } from "@shared/schema";
+import type { 
+  InsertPatron, 
+  InsertPost, 
+  InsertRevenueData, 
+  PatreonCampaign,
+  InsertCampaignTier,
+  InsertCampaignGoal,
+  InsertBenefit,
+  InsertAddress
+} from "@shared/schema";
 
 class SyncService {
   private activeSyncs = new Map<number, boolean>();
@@ -75,10 +84,22 @@ class SyncService {
         }
       }
 
-      // Sync members/patrons
+      // Get complete campaign data first to update campaign details
+      await this.syncCampaignDetails(campaign, accessToken, syncId);
+      
+      // Sync campaign tiers
+      await this.syncCampaignTiers(campaign, accessToken, syncId);
+      
+      // Sync campaign goals
+      await this.syncCampaignGoals(campaign, accessToken, syncId);
+      
+      // Sync campaign benefits
+      await this.syncCampaignBenefits(campaign, accessToken, syncId);
+      
+      // Sync members/patrons (enhanced with all data)
       await this.syncPatrons(campaign, accessToken, syncId);
       
-      // Sync posts
+      // Sync posts (enhanced with all data)
       await this.syncPosts(campaign, accessToken, syncId);
       
       // Update campaign stats
@@ -116,17 +137,22 @@ class SyncService {
         cursor
       );
 
-      const members = response.data;
+      const members = response.members;
       const users = response.included?.filter((item: any) => item.type === 'user') || [];
+      const addresses = response.included?.filter((item: any) => item.type === 'address') || [];
       
       totalPatrons += members.length;
 
       for (const member of members) {
         const user = users.find((u: any) => u.id === member.relationships?.user?.data?.id);
+        const address = addresses.find((a: any) => 
+          member.relationships?.address?.data && a.id === member.relationships.address.data.id
+        );
         
         const patronData: InsertPatron = {
           campaignId: campaign.id,
           patreonUserId: member.relationships?.user?.data?.id || member.id,
+          patreonMemberId: member.id,
           email: user?.attributes?.email || null,
           fullName: user?.attributes?.full_name || member.attributes?.full_name || null,
           firstName: user?.attributes?.first_name || null,
@@ -134,16 +160,34 @@ class SyncService {
           imageUrl: user?.attributes?.image_url || null,
           thumbUrl: user?.attributes?.thumb_url || null,
           url: user?.attributes?.url || null,
+          vanity: user?.attributes?.vanity || null,
+          about: user?.attributes?.about || null,
           isFollower: user?.attributes?.is_follower || false,
+          isCreator: user?.attributes?.is_creator || false,
+          isEmailVerified: user?.attributes?.is_email_verified || false,
+          canSeeNsfw: user?.attributes?.can_see_nsfw || false,
           pledgeRelationshipStart: member.attributes?.pledge_relationship_start ? 
             new Date(member.attributes.pledge_relationship_start) : null,
           lifetimeSupportCents: member.attributes?.lifetime_support_cents || 0,
+          campaignLifetimeSupportCents: member.attributes?.campaign_lifetime_support_cents || 0,
           currentlyEntitledAmountCents: member.attributes?.currently_entitled_amount_cents || 0,
           patronStatus: member.attributes?.patron_status || null,
           lastChargeDate: member.attributes?.last_charge_date ? 
             new Date(member.attributes.last_charge_date) : null,
           lastChargeStatus: member.attributes?.last_charge_status || null,
           willPayAmountCents: member.attributes?.will_pay_amount_cents || 0,
+          note: member.attributes?.note || null,
+          currentlyEntitledTiers: member.relationships?.currently_entitled_tiers?.data || null,
+          address: address ? {
+            line1: address.attributes?.line_1 || null,
+            line2: address.attributes?.line_2 || null,
+            city: address.attributes?.city || null,
+            state: address.attributes?.state || null,
+            postalCode: address.attributes?.postal_code || null,
+            country: address.attributes?.country || null,
+            phoneNumber: address.attributes?.phone_number || null,
+          } : null,
+          patreonCreatedAt: user?.attributes?.created ? new Date(user.attributes.created) : null,
         };
 
         await storage.upsertPatron(patronData);
@@ -176,7 +220,7 @@ class SyncService {
         cursor
       );
 
-      const posts = response.data;
+      const posts = response.posts;
 
       for (const post of posts) {
         const postData: InsertPost = {
@@ -185,17 +229,29 @@ class SyncService {
           title: post.attributes?.title || null,
           content: post.attributes?.content || null,
           url: post.attributes?.url || null,
+          patreonUrl: post.attributes?.patreon_url || null,
           embedData: post.attributes?.embed_data || null,
           embedUrl: post.attributes?.embed_url || null,
           imageUrl: post.attributes?.image?.large_url || post.attributes?.image?.url || null,
+          postFile: post.attributes?.post_file || null,
+          postMetadata: post.attributes?.post_metadata || null,
           isPublic: post.attributes?.is_public || false,
           isPaid: post.attributes?.is_paid || false,
+          likeCount: post.attributes?.like_count || 0,
+          commentCount: post.attributes?.comment_count || 0,
+          appId: post.attributes?.app_id || null,
+          appStatus: post.attributes?.app_status || null,
           publishedAt: post.attributes?.published_at ? 
             new Date(post.attributes.published_at) : null,
           editedAt: post.attributes?.edited_at ? 
             new Date(post.attributes.edited_at) : null,
-          likesCount: post.attributes?.like_count || 0,
-          commentsCount: post.attributes?.comment_count || 0,
+          patreonCreatedAt: post.attributes?.created_at ? 
+            new Date(post.attributes.created_at) : null,
+          patreonUpdatedAt: post.attributes?.updated_at ? 
+            new Date(post.attributes.updated_at) : null,
+          attachments: post.relationships?.attachments?.data || null,
+          userDefinedTags: post.relationships?.user_defined_tags?.data || null,
+          poll: post.relationships?.poll?.data || null,
         };
 
         await storage.upsertPost(postData);
@@ -238,6 +294,125 @@ class SyncService {
     };
 
     await storage.upsertRevenueData(revenueData);
+  }
+
+  private async syncCampaignDetails(campaign: PatreonCampaign, accessToken: string, syncId: number) {
+    try {
+      const response = await patreonApi.getCompleteCampaignData(accessToken, campaign.patreonCampaignId);
+      const campaignData = response.campaign;
+
+      // Update campaign with comprehensive data
+      await storage.updateCampaign(campaign.id, {
+        title: campaignData.attributes?.creation_name || campaign.title,
+        summary: campaignData.attributes?.summary || campaign.summary,
+        imageUrl: campaignData.attributes?.image_url || campaign.imageUrl,
+        vanityUrl: campaignData.attributes?.vanity || campaign.vanityUrl,
+        patronCount: campaignData.attributes?.patron_count || 0,
+        pledgeSum: (campaignData.attributes?.pledge_sum || 0).toString(),
+        currency: campaignData.attributes?.currency || 'USD',
+        isMonthly: campaignData.attributes?.is_monthly ?? true,
+        isChargedImmediately: campaignData.attributes?.is_charged_immediately ?? false,
+        isNsfw: campaignData.attributes?.is_nsfw ?? false,
+        mainVideoEmbed: campaignData.attributes?.main_video_embed || null,
+        mainVideoUrl: campaignData.attributes?.main_video_url || null,
+        oneLiner: campaignData.attributes?.one_liner || null,
+        payPerName: campaignData.attributes?.pay_per_name || null,
+        pledgeUrl: campaignData.attributes?.pledge_url || null,
+        thanksEmbed: campaignData.attributes?.thanks_embed || null,
+        thanksMsg: campaignData.attributes?.thanks_msg || null,
+        thanksVideoUrl: campaignData.attributes?.thanks_video_url || null,
+        hasRss: campaignData.attributes?.has_rss ?? false,
+        hasSentRssNotify: campaignData.attributes?.has_sent_rss_notify ?? false,
+        rssFeedTitle: campaignData.attributes?.rss_feed_title || null,
+        rssArtworkUrl: campaignData.attributes?.rss_artwork_url || null,
+        publishedAt: campaignData.attributes?.published_at ? new Date(campaignData.attributes.published_at) : null,
+      });
+    } catch (error) {
+      console.error('Error syncing campaign details:', error);
+    }
+  }
+
+  private async syncCampaignTiers(campaign: PatreonCampaign, accessToken: string, syncId: number) {
+    try {
+      const response = await patreonApi.getCampaignTiers(accessToken, campaign.patreonCampaignId);
+      const tiers = response.tiers;
+
+      for (const tier of tiers) {
+        const tierData: InsertCampaignTier = {
+          campaignId: campaign.id,
+          patreonTierId: tier.id,
+          title: tier.attributes?.title || 'Untitled Tier',
+          description: tier.attributes?.description || null,
+          amountCents: tier.attributes?.amount_cents || 0,
+          imageUrl: tier.attributes?.image_url || null,
+          patronCount: tier.attributes?.patron_count || 0,
+          remaining: tier.attributes?.remaining || null,
+          requiresShipping: tier.attributes?.requires_shipping ?? false,
+          discordRoleIds: tier.attributes?.discord_role_ids || null,
+          published: tier.attributes?.published ?? true,
+          patreonCreatedAt: tier.attributes?.created_at ? new Date(tier.attributes.created_at) : null,
+          editedAt: tier.attributes?.edited_at ? new Date(tier.attributes.edited_at) : null,
+          publishedAt: tier.attributes?.published_at ? new Date(tier.attributes.published_at) : null,
+          unpublishedAt: tier.attributes?.unpublished_at ? new Date(tier.attributes.unpublished_at) : null,
+        };
+
+        await storage.upsertCampaignTier(tierData);
+      }
+    } catch (error) {
+      console.error('Error syncing campaign tiers:', error);
+    }
+  }
+
+  private async syncCampaignGoals(campaign: PatreonCampaign, accessToken: string, syncId: number) {
+    try {
+      const response = await patreonApi.getCampaignGoals(accessToken, campaign.patreonCampaignId);
+      const goals = response.goals;
+
+      for (const goal of goals) {
+        const goalData: InsertCampaignGoal = {
+          campaignId: campaign.id,
+          patreonGoalId: goal.id,
+          title: goal.attributes?.title || 'Untitled Goal',
+          description: goal.attributes?.description || null,
+          amountCents: goal.attributes?.amount_cents || 0,
+          completedPercentage: goal.attributes?.completed_percentage || 0,
+          patreonCreatedAt: goal.attributes?.created_at ? new Date(goal.attributes.created_at) : null,
+          reachedAt: goal.attributes?.reached_at ? new Date(goal.attributes.reached_at) : null,
+        };
+
+        await storage.upsertCampaignGoal(goalData);
+      }
+    } catch (error) {
+      console.error('Error syncing campaign goals:', error);
+    }
+  }
+
+  private async syncCampaignBenefits(campaign: PatreonCampaign, accessToken: string, syncId: number) {
+    try {
+      const response = await patreonApi.getCampaignBenefits(accessToken, campaign.patreonCampaignId);
+      const benefits = response.benefits;
+
+      for (const benefit of benefits) {
+        const benefitData: InsertBenefit = {
+          campaignId: campaign.id,
+          patreonBenefitId: benefit.id,
+          title: benefit.attributes?.title || 'Untitled Benefit',
+          description: benefit.attributes?.description || null,
+          benefitType: benefit.attributes?.benefit_type || null,
+          isDelivered: benefit.attributes?.is_delivered ?? false,
+          isPublished: benefit.attributes?.is_published ?? true,
+          nextDeliverableDue: benefit.attributes?.next_deliverable_due ? 
+            new Date(benefit.attributes.next_deliverable_due) : null,
+          deliveredDeliverables: benefit.attributes?.delivered_deliverables || 0,
+          notDeliveredDeliverables: benefit.attributes?.not_delivered_deliverables || 0,
+          patreonCreatedAt: benefit.attributes?.created_at ? new Date(benefit.attributes.created_at) : null,
+        };
+
+        await storage.upsertBenefit(benefitData);
+      }
+    } catch (error) {
+      console.error('Error syncing campaign benefits:', error);
+    }
   }
 }
 
