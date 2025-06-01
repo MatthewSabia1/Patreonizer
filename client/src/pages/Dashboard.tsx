@@ -230,7 +230,7 @@ export default function Dashboard() {
                 </SelectTrigger>
                 <SelectContent className="glass-card">
                   <SelectItem value="all">All Campaigns</SelectItem>
-                  {campaigns.map((campaign: any) => (
+                  {campaigns.map((campaign) => (
                     <SelectItem key={campaign.id} value={campaign.id.toString()}>
                       {campaign.title}
                     </SelectItem>
