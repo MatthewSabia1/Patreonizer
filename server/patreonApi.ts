@@ -83,9 +83,8 @@ class PatreonAPI {
   async getCurrentUser(accessToken: string) {
     const response = await this.makeRequest('/identity', accessToken, {
       'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,created,is_creator,vanity,about,can_see_nsfw,is_email_verified,social_connections',
-      'include': 'memberships,campaign',
+      'include': 'memberships',
       'fields[member]': 'patron_status,currently_entitled_amount_cents,lifetime_support_cents',
-      'fields[campaign]': 'creation_name,patron_count,pledge_sum',
     });
     return {
       user: response.data,

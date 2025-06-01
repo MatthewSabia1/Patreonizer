@@ -814,6 +814,14 @@ export class DatabaseStorage implements IStorage {
       .orderBy(webhooks.createdAt);
   }
 
+  async getWebhookById(webhookId: number): Promise<Webhook | undefined> {
+    const [webhook] = await db
+      .select()
+      .from(webhooks)
+      .where(eq(webhooks.id, webhookId));
+    return webhook;
+  }
+
   async deleteWebhook(webhookId: number): Promise<void> {
     await db.delete(webhooks).where(eq(webhooks.id, webhookId));
   }
