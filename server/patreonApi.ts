@@ -222,10 +222,10 @@ class PatreonAPI {
 
   async getPost(accessToken: string, postId: string) {
     const response = await this.makeRequest(`/posts/${postId}`, accessToken, {
-      'fields[post]': 'title,content,url,embed_data,embed_url,image,is_public,is_paid,published_at,edited_at,like_count,comment_count,patreon_url,post_file,post_metadata,app_id,app_status,created_at,updated_at',
+      'fields[post]': 'title,content,url,embed_data,embed_url,is_public,is_paid,published_at,app_id,app_status',
       'fields[user]': 'full_name,image_url,url',
       'fields[campaign]': 'creation_name',
-      'include': 'user,campaign,attachments,user_defined_tags,poll',
+      'include': 'user,campaign',
     });
     return {
       post: response.data,
