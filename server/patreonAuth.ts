@@ -29,7 +29,7 @@ export function setupPatreonAuth(app: Express) {
     clientID: PATREON_CLIENT_ID,
     clientSecret: PATREON_CLIENT_SECRET,
     callbackURL: `${baseUrl}/api/auth/patreon/callback`,
-    scope: 'identity identity[email] campaigns campaigns.members pledges-to-me',
+    scope: 'identity',
     customHeaders: {
       'User-Agent': 'Patreonizer/1.0',
     },
