@@ -111,7 +111,7 @@ class PatreonAPI {
   async getCampaignMembers(accessToken: string, campaignId: string, cursor?: string) {
     const params: any = {
       'fields[member]': 'full_name,email,patron_status,pledge_relationship_start,lifetime_support_cents,currently_entitled_amount_cents,last_charge_date,last_charge_status,will_pay_amount_cents,campaign_lifetime_support_cents,note',
-      'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,is_follower,created,vanity,about,can_see_nsfw,is_email_verified,is_creator,social_connections',
+      'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,created,vanity,about,can_see_nsfw,is_email_verified,is_creator,social_connections',
       'fields[tier]': 'title,amount_cents,description,patron_count,remaining,requires_shipping,created_at,edited_at,published_at,unpublished_at,discord_role_ids,image_url',
       'fields[address]': 'addressee,line_1,line_2,postal_code,city,state,country,phone_number,created_at',
       'include': 'user,currently_entitled_tiers,address',

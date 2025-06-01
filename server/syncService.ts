@@ -87,20 +87,30 @@ class SyncService {
       // Get complete campaign data first to update campaign details
       await this.syncCampaignDetails(campaign, accessToken, syncId);
       
-      // Sync campaign tiers
-      await this.syncCampaignTiers(campaign, accessToken, syncId);
-      
-      // Sync campaign goals
-      await this.syncCampaignGoals(campaign, accessToken, syncId);
-      
-      // Sync campaign benefits
-      await this.syncCampaignBenefits(campaign, accessToken, syncId);
-      
-      // Sync members/patrons (enhanced with all data)
+      // Sync members/patrons first - this is the most important data
       await this.syncPatrons(campaign, accessToken, syncId);
       
-      // Sync posts (enhanced with all data)
+      // Sync posts - another important data source
       await this.syncPosts(campaign, accessToken, syncId);
+      
+      // Try to sync additional data, but don't fail if endpoints are restricted
+      try {
+        await this.syncCampaignTiers(campaign, accessToken, syncId);
+      } catch (error) {
+        console.warn('Campaign tiers sync failed (may not be available):', error.message);
+      }
+      
+      try {
+        await this.syncCampaignGoals(campaign, accessToken, syncId);
+      } catch (error) {
+        console.warn('Campaign goals sync failed (may not be available):', error.message);
+      }
+      
+      try {
+        await this.syncCampaignBenefits(campaign, accessToken, syncId);
+      } catch (error) {
+        console.warn('Campaign benefits sync failed (may not be available):', error.message);
+      }
       
       // Update campaign stats
       await this.updateCampaignStats(campaign.id);
@@ -162,7 +172,7 @@ class SyncService {
           url: user?.attributes?.url || null,
           vanity: user?.attributes?.vanity || null,
           about: user?.attributes?.about || null,
-          isFollower: user?.attributes?.is_follower || false,
+          isFollower: false, // Field not available in current API
           isCreator: user?.attributes?.is_creator || false,
           isEmailVerified: user?.attributes?.is_email_verified || false,
           canSeeNsfw: user?.attributes?.can_see_nsfw || false,
