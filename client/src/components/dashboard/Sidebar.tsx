@@ -38,17 +38,17 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
 
   return (
     <motion.aside 
-      initial={{ x: -300, opacity: 0 }}
+      initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
       className="w-64 bg-sidebar/95 backdrop-glass border-r border-sidebar-border flex flex-col h-full shadow-card-soft"
     >
       {/* Header */}
       <div className="p-6 border-b border-sidebar-border/50">
         <motion.div 
-          initial={{ y: -20, opacity: 0 }}
+          initial={{ y: -8, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
+          transition={{ delay: 0.1, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="flex items-center space-x-3"
         >
           <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent/80 rounded-xl flex items-center justify-center shadow-glow">
@@ -72,30 +72,31 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
           return (
             <motion.div
               key={item.name}
-              initial={{ x: -20, opacity: 0 }}
+              initial={{ x: -8, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
-              transition={{ delay: 0.1 * index, duration: 0.3 }}
+              transition={{ delay: 0.05 * index, duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               <Link href={item.href}>
                 <motion.div
-                  whileHover={{ x: 6, scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  whileHover={{ x: 2 }}
+                  whileTap={{ scale: 0.99 }}
+                  transition={{ duration: 0.15, ease: "easeOut" }}
                   className={`
-                    sidebar-link flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ease-out relative group
+                    sidebar-link flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ease-out relative group
                     ${isActive 
                       ? 'active bg-gradient-to-r from-accent/15 to-accent/5 text-accent border-accent/30 shadow-glow' 
                       : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60 border-transparent'
                     }
                   `}
                 >
-                  <Icon className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-105'}`} />
+                  <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'scale-105' : 'group-hover:scale-102'}`} />
                   <span className="font-medium tracking-wide">{item.name}</span>
                   {isActive && (
                     <motion.div
                       layoutId="activeTab"
-                      className="absolute right-2 w-2 h-2 bg-accent rounded-full shadow-lg"
+                      className="absolute right-3 w-1.5 h-1.5 bg-accent rounded-full shadow-lg"
                       initial={false}
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 25 }}
                     />
                   )}
                 </motion.div>

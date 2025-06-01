@@ -201,16 +201,16 @@ export default function Dashboard() {
       <main className="flex-1 overflow-auto scrollbar-custom">
         {/* Header */}
         <motion.header
-          initial={{ opacity: 0, y: -30 }}
+          initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="bg-card/95 backdrop-glass border-b border-border/50 p-6 shadow-card-soft"
         >
           <div className="flex items-center justify-between">
             <motion.div
-              initial={{ opacity: 0, x: -20 }}
+              initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
+              transition={{ delay: 0.1, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
               <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
                 Dashboard Overview
@@ -219,9 +219,9 @@ export default function Dashboard() {
             </motion.div>
             
             <motion.div 
-              initial={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0, x: 8 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
+              transition={{ delay: 0.15, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="flex items-center space-x-4"
             >
               <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
@@ -271,18 +271,18 @@ export default function Dashboard() {
         <div className="p-8 space-y-8 page-transition">
           {/* Key Metrics */}
           <motion.section
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.6 }}
+            transition={{ delay: 0.2, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <MetricsCards data={metrics} isLoading={metricsLoading} />
           </motion.section>
 
           {/* Charts */}
           <motion.section
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
+            transition={{ delay: 0.25, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <RevenueChart
               revenueData={revenueData}
@@ -294,9 +294,9 @@ export default function Dashboard() {
 
           {/* Campaign Performance & Recent Activity */}
           <motion.section
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.6 }}
+            transition={{ delay: 0.3, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <CampaignTable campaigns={campaigns} isLoading={campaignsLoading} />
@@ -306,9 +306,9 @@ export default function Dashboard() {
 
           {/* Quick Actions */}
           <motion.section
-            initial={{ opacity: 0, y: 40 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7, duration: 0.6 }}
+            transition={{ delay: 0.35, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <QuickActions
               onConnectPage={() => setShowConnectModal(true)}

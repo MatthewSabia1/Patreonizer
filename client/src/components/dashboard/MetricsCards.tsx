@@ -64,16 +64,16 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
         return (
           <motion.div
             key={metric.title}
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ 
-              delay: index * 0.15, 
-              duration: 0.5,
-              ease: "easeOut"
+              delay: index * 0.08, 
+              duration: 0.3,
+              ease: [0.25, 0.46, 0.45, 0.94]
             }}
             whileHover={{ 
-              scale: 1.02,
-              transition: { duration: 0.2 }
+              y: -2,
+              transition: { duration: 0.15, ease: "easeOut" }
             }}
           >
             <Card className="card-enhanced overflow-hidden border-border/50 backdrop-blur-sm">
