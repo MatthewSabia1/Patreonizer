@@ -19,7 +19,7 @@ import {
   type RevenueData,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, gte, lte, like, or } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lte, like, or, inArray, type SQL } from "drizzle-orm";
 import { format } from "date-fns";
 
 export interface IStorage {
@@ -163,23 +163,21 @@ export class DatabaseStorage implements IStorage {
       return { patrons: [], total: 0 };
     }
 
-    let whereConditions = sql`${patrons.campaignId} IN ${campaignIds}`;
+    let whereConditions: SQL<unknown> = inArray(patrons.campaignId, campaignIds);
 
     if (campaignId && campaignId !== "all") {
-      whereConditions = and(
-        whereConditions,
-        eq(patrons.campaignId, parseInt(campaignId))
-      )!;
+      const additionalCondition = eq(patrons.campaignId, parseInt(campaignId));
+      const result = and(whereConditions, additionalCondition);
+      if (result) whereConditions = result;
     }
 
     if (search) {
-      whereConditions = and(
-        whereConditions,
-        or(
-          like(patrons.fullName, `%${search}%`),
-          like(patrons.email, `%${search}%`)
-        )
-      )!;
+      const searchCondition = or(
+        like(patrons.fullName, `%${search}%`),
+        like(patrons.email, `%${search}%`)
+      );
+      const result = and(whereConditions, searchCondition);
+      if (result) whereConditions = result;
     }
 
     const [patronsList, [{ total }]] = await Promise.all([
@@ -279,13 +277,12 @@ export class DatabaseStorage implements IStorage {
       return { posts: [], total: 0 };
     }
 
-    let whereConditions = sql`${posts.campaignId} IN ${campaignIds}`;
+    let whereConditions: SQL<unknown> = inArray(posts.campaignId, campaignIds);
 
     if (campaignId && campaignId !== "all") {
-      whereConditions = and(
-        whereConditions,
-        eq(posts.campaignId, parseInt(campaignId))
-      )!;
+      const additionalCondition = eq(posts.campaignId, parseInt(campaignId));
+      const result = and(whereConditions, additionalCondition);
+      if (result) whereConditions = result;
     }
 
     const [postsList, [{ total }]] = await Promise.all([
