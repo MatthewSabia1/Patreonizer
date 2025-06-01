@@ -59,7 +59,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const campaigns = await storage.getUserCampaigns(userId);
-      res.json(campaigns);
+      
+      // Enhance campaigns with accurate revenue calculations
+      const enhancedCampaigns = await Promise.all(
+        campaigns.map(async (campaign) => {
+          const stats = await storage.getCampaignStats(campaign.id);
+          return {
+            ...campaign,
+            actualMonthlyRevenue: stats.totalPledgeSum,
+            actualPatronCount: stats.patronCount
+          };
+        })
+      );
+      
+      res.json(enhancedCampaigns);
     } catch (error) {
       console.error("Error fetching campaigns:", error);
       res.status(500).json({ message: "Failed to fetch campaigns" });

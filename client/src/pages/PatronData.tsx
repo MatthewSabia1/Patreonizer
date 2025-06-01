@@ -291,7 +291,9 @@ export default function PatronData() {
                     <p className="text-sm text-muted-foreground">Total Revenue</p>
                     <p className="text-2xl font-bold">
                       {formatCurrency(
-                        patrons.reduce((sum, patron) => sum + patron.currentlyEntitledAmountCents, 0)
+                        patrons
+                          .filter(patron => patron.patronStatus === 'active_patron')
+                          .reduce((sum, patron) => sum + patron.currentlyEntitledAmountCents, 0)
                       )}
                     </p>
                   </div>

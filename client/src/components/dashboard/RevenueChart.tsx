@@ -168,8 +168,10 @@ export function RevenueChart({ revenueData = [], patronData = [], campaigns = []
                 ))
               ) : (
                 campaigns.map((campaign, index) => {
-                  const percentage = campaigns.length > 0 ? 
-                    (campaign.pledgeSum / campaigns.reduce((sum: number, c: any) => sum + c.pledgeSum, 0)) * 100 : 0;
+                  // Use actual revenue calculation instead of outdated pledgeSum
+                  const actualRevenue = campaign.actualMonthlyRevenue || 0;
+                  const totalRevenue = campaigns.reduce((sum: number, c: any) => sum + (c.actualMonthlyRevenue || 0), 0);
+                  const percentage = totalRevenue > 0 ? (actualRevenue / totalRevenue) * 100 : 0;
                   
                   return (
                     <motion.div
@@ -182,7 +184,7 @@ export function RevenueChart({ revenueData = [], patronData = [], campaigns = []
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">{campaign.title}</span>
                         <span className="text-sm font-bold">
-                          {formatCurrency(campaign.pledgeSum)}
+                          {formatCurrency(actualRevenue)}
                         </span>
                       </div>
                       <div className="w-full bg-secondary rounded-full h-2">
@@ -194,7 +196,7 @@ export function RevenueChart({ revenueData = [], patronData = [], campaigns = []
                         />
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{campaign.patronCount} patrons</span>
+                        <span>{campaign.actualPatronCount || campaign.patronCount} patrons</span>
                         <span>{percentage.toFixed(1)}%</span>
                       </div>
                     </motion.div>

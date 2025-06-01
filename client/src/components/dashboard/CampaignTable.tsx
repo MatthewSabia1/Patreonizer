@@ -11,6 +11,8 @@ interface Campaign {
   imageUrl?: string | null;
   patronCount: number;
   pledgeSum: string;
+  actualMonthlyRevenue?: number;
+  actualPatronCount?: number;
   isActive: boolean;
   lastSyncAt?: string | null;
 }
@@ -115,8 +117,8 @@ export function CampaignTable({ campaigns = [], isLoading }: CampaignTableProps)
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 font-medium">{campaign.patronCount.toLocaleString()}</td>
-                      <td className="py-4 font-medium">{formatCurrency(campaign.pledgeSum)}</td>
+                      <td className="py-4 font-medium">{(campaign.actualPatronCount || campaign.patronCount).toLocaleString()}</td>
+                      <td className="py-4 font-medium">{formatCurrency(campaign.actualMonthlyRevenue || campaign.pledgeSum)}</td>
                       <td className="py-4">
                         <div className="flex items-center space-x-1">
                           <TrendingUp className="w-4 h-4 text-green-500" />

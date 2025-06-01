@@ -175,8 +175,8 @@ export class DatabaseStorage implements IStorage {
   async getCampaignStats(campaignId: number): Promise<{ patronCount: number; totalPledgeSum: number }> {
     const [stats] = await db
       .select({
-        patronCount: sql<number>`count(${patrons.id})`,
-        totalPledgeSum: sql<number>`sum(${patrons.currentlyEntitledAmountCents}) / 100`,
+        patronCount: sql<number>`count(case when ${patrons.patronStatus} = 'active_patron' then 1 end)`,
+        totalPledgeSum: sql<number>`sum(case when ${patrons.patronStatus} = 'active_patron' then ${patrons.currentlyEntitledAmountCents} else 0 end) / 100`,
       })
       .from(patrons)
       .where(eq(patrons.campaignId, campaignId));
