@@ -15,6 +15,7 @@ import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { LoadingOverlay } from "@/components/dashboard/LoadingOverlay";
 import { ConnectPatreonModal } from "@/components/dashboard/ConnectPatreonModal";
+import { NotificationCenter } from "@/components/dashboard/NotificationCenter";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -224,6 +225,8 @@ export default function Dashboard() {
               transition={{ delay: 0.15, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
               className="flex items-center space-x-4"
             >
+              <NotificationCenter />
+              
               <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
                 <SelectTrigger className="w-44 input-enhanced border-border/60 focus:border-accent/50">
                   <SelectValue />

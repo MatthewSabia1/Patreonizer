@@ -47,8 +47,8 @@ interface Post {
   publishedAt: string | null;
   isPublic: boolean;
   isPaid: boolean;
-  likeCount: number;
-  commentCount: number;
+  likesCount: number;
+  commentsCount: number;
   campaignId: number;
   campaignTitle?: string;
 }
@@ -125,8 +125,8 @@ export default function Posts() {
   const totalPosts = postsData?.total || 0;
   const publicPosts = posts.filter(p => p.isPublic).length;
   const paidPosts = posts.filter(p => p.isPaid).length;
-  const totalLikes = posts.reduce((sum, post) => sum + post.likeCount, 0);
-  const totalComments = posts.reduce((sum, post) => sum + post.commentCount, 0);
+  const totalLikes = posts.reduce((sum, post) => sum + post.likesCount, 0);
+  const totalComments = posts.reduce((sum, post) => sum + post.commentsCount, 0);
   const avgEngagement = posts.length > 0 ? (totalLikes + totalComments) / posts.length : 0;
 
   if (authLoading) {
@@ -421,18 +421,18 @@ export default function Posts() {
                               <TableCell>
                                 <div className="flex items-center space-x-1">
                                   <Heart className="w-4 h-4 text-red-500" />
-                                  <span>{post.likeCount.toLocaleString()}</span>
+                                  <span>{post.likesCount.toLocaleString()}</span>
                                 </div>
                               </TableCell>
                               <TableCell>
                                 <div className="flex items-center space-x-1">
                                   <MessageCircle className="w-4 h-4 text-blue-500" />
-                                  <span>{post.commentCount.toLocaleString()}</span>
+                                  <span>{post.commentsCount.toLocaleString()}</span>
                                 </div>
                               </TableCell>
                               <TableCell>
                                 <span className="font-medium">
-                                  {(post.likeCount + post.commentCount).toLocaleString()}
+                                  {(post.likesCount + post.commentsCount).toLocaleString()}
                                 </span>
                               </TableCell>
                             </motion.tr>
