@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
+import type { DashboardMetrics, ActivityItem, SyncStatus, RevenueData, PatreonCampaign } from "@/lib/types";
 
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MetricsCards } from "@/components/dashboard/MetricsCards";
@@ -47,27 +48,27 @@ export default function Dashboard() {
   }, [isAuthenticated, authLoading, toast]);
 
   // Fetch dashboard data
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
+  const { data: metrics, isLoading: metricsLoading } = useQuery<DashboardMetrics>({
     queryKey: ["/api/dashboard/metrics"],
     retry: false,
   });
 
-  const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
+  const { data: campaigns = [], isLoading: campaignsLoading } = useQuery<PatreonCampaign[]>({
     queryKey: ["/api/campaigns"],
     retry: false,
   });
 
-  const { data: revenueData = [], isLoading: revenueLoading } = useQuery({
+  const { data: revenueData = [], isLoading: revenueLoading } = useQuery<RevenueData[]>({
     queryKey: ["/api/dashboard/revenue-data", timeRange, selectedCampaign],
     retry: false,
   });
 
-  const { data: activity = [], isLoading: activityLoading } = useQuery({
+  const { data: activity = [], isLoading: activityLoading } = useQuery<ActivityItem[]>({
     queryKey: ["/api/activity/recent"],
     retry: false,
   });
 
-  const { data: activeSyncs = [] } = useQuery({
+  const { data: activeSyncs = [] } = useQuery<SyncStatus[]>({
     queryKey: ["/api/sync/active"],
     refetchInterval: 2000, // Poll every 2 seconds for active syncs
     retry: false,
@@ -207,7 +208,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold">Dashboard Overview</h1>
-              <p className="text-muted-foreground">Track your Patreon campaigns performance</p>
+              <span className="text-muted-foreground">Track your Patreon campaigns performance</span>
             </div>
             
             <div className="flex items-center space-x-4">

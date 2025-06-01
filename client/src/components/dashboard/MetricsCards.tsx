@@ -2,19 +2,10 @@ import { motion } from "framer-motion";
 import { DollarSign, Users, HandHeart, UserPlus, TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
-interface MetricsData {
-  monthlyRevenue: number;
-  revenueChange: number;
-  totalPatrons: number;
-  patronChange: number;
-  avgPerPatron: number;
-  avgChange: number;
-  newPatrons: number;
-  newPatronChange: number;
-}
+import type { DashboardMetrics } from "@/lib/types";
 
 interface MetricsCardsProps {
-  data?: MetricsData;
+  data?: DashboardMetrics;
   isLoading?: boolean;
 }
 
