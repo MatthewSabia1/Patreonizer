@@ -50,9 +50,15 @@ class PatreonAPI {
 
   async getCurrentUser(accessToken: string) {
     const response = await this.makeRequest('/identity', accessToken, {
-      'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,created,is_creator',
+      'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,created,is_creator,vanity,about,can_see_nsfw,is_email_verified,social_connections',
+      'include': 'memberships,campaign',
+      'fields[member]': 'patron_status,currently_entitled_amount_cents,lifetime_support_cents',
+      'fields[campaign]': 'creation_name,patron_count,pledge_sum',
     });
-    return response.data;
+    return {
+      user: response.data,
+      included: response.included || [],
+    };
   }
 
   async getUserCampaigns(accessToken: string) {
@@ -93,12 +99,66 @@ class PatreonAPI {
 
   async getCampaignTiers(accessToken: string, campaignId: string) {
     const response = await this.makeRequest(`/campaigns/${campaignId}/tiers`, accessToken, {
-      'fields[tier]': 'title,amount_cents,description,patron_count,remaining,requires_shipping,created_at,edited_at,published_at,unpublished_at,discord_role_ids,image_url',
+      'fields[tier]': 'title,amount_cents,description,patron_count,remaining,requires_shipping,created_at,edited_at,published_at,unpublished_at,discord_role_ids,image_url,post_count,user_limit,published',
       'sort': 'amount_cents',
     });
     return {
       tiers: response.data || [],
       meta: response.meta,
+    };
+  }
+
+  async getCampaignBenefits(accessToken: string, campaignId: string) {
+    const response = await this.makeRequest(`/campaigns/${campaignId}/benefits`, accessToken, {
+      'fields[benefit]': 'title,description,benefit_type,is_delivered,is_published,next_deliverable_due,delivered_deliverables,not_delivered_deliverables,created_at',
+      'sort': 'created_at',
+    });
+    return {
+      benefits: response.data || [],
+      meta: response.meta,
+    };
+  }
+
+  async getCampaignGoals(accessToken: string, campaignId: string) {
+    const response = await this.makeRequest(`/campaigns/${campaignId}/goals`, accessToken, {
+      'fields[goal]': 'amount_cents,title,description,created_at,reached_at,completed_percentage',
+      'sort': 'amount_cents',
+    });
+    return {
+      goals: response.data || [],
+      meta: response.meta,
+    };
+  }
+
+  async getAddress(accessToken: string, addressId: string) {
+    const response = await this.makeRequest(`/addresses/${addressId}`, accessToken, {
+      'fields[address]': 'addressee,line_1,line_2,postal_code,city,state,country,phone_number,created_at',
+    });
+    return {
+      address: response.data,
+    };
+  }
+
+  async getCampaignDeliverables(accessToken: string, campaignId: string, cursor?: string) {
+    const params: any = {
+      'fields[deliverable]': 'completion_percentage,delivery_status,due_date,created_at',
+      'fields[benefit]': 'title,description,benefit_type',
+      'fields[member]': 'full_name,email,patron_status',
+      'include': 'benefit,member',
+      'page[count]': '500',
+      'sort': '-due_date',
+    };
+
+    if (cursor) {
+      params['page[cursor]'] = cursor;
+    }
+
+    const response = await this.makeRequest(`/campaigns/${campaignId}/deliverables`, accessToken, params);
+    return {
+      deliverables: response.data || [],
+      included: response.included || [],
+      meta: response.meta || {},
+      links: response.links || {},
     };
   }
 
