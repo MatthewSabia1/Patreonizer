@@ -14,6 +14,11 @@ import { RecentActivity } from "@/components/dashboard/RecentActivity";
 import { QuickActions } from "@/components/dashboard/QuickActions";
 import { LoadingOverlay } from "@/components/dashboard/LoadingOverlay";
 import { ConnectPatreonModal } from "@/components/dashboard/ConnectPatreonModal";
+import { CalendarWidget } from "@/components/dashboard/CalendarWidget";
+import { GoalProgress } from "@/components/dashboard/GoalProgress";
+import { ExerciseChart } from "@/components/dashboard/ExerciseChart";
+import { PaymentsTable } from "@/components/dashboard/PaymentsTable";
+import { AccountForm } from "@/components/dashboard/AccountForm";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,27 +52,27 @@ export default function Dashboard() {
   }, [isAuthenticated, authLoading, toast]);
 
   // Fetch dashboard data
-  const { data: metrics, isLoading: metricsLoading } = useQuery({
+  const { data: metrics, isLoading: metricsLoading } = useQuery<any>({
     queryKey: ["/api/dashboard/metrics"],
     retry: false,
   });
 
-  const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
+  const { data: campaigns = [], isLoading: campaignsLoading } = useQuery<any[]>({
     queryKey: ["/api/campaigns"],
     retry: false,
   });
 
-  const { data: revenueData = [], isLoading: revenueLoading } = useQuery({
+  const { data: revenueData = [], isLoading: revenueLoading } = useQuery<any[]>({
     queryKey: ["/api/dashboard/revenue-data", timeRange, selectedCampaign],
     retry: false,
   });
 
-  const { data: activity = [], isLoading: activityLoading } = useQuery({
+  const { data: activity = [], isLoading: activityLoading } = useQuery<any[]>({
     queryKey: ["/api/activity/recent"],
     retry: false,
   });
 
-  const { data: activeSyncs = [] } = useQuery({
+  const { data: activeSyncs = [] } = useQuery<any[]>({
     queryKey: ["/api/sync/active"],
     refetchInterval: 2000, // Poll every 2 seconds for active syncs
     retry: false,
@@ -259,13 +264,45 @@ export default function Dashboard() {
           {/* Key Metrics */}
           <MetricsCards data={metrics} isLoading={metricsLoading} />
 
-          {/* Charts */}
-          <RevenueChart
-            revenueData={revenueData}
-            patronData={revenueData}
-            campaigns={campaigns}
-            isLoading={revenueLoading}
-          />
+          {/* Main Dashboard Grid - matches mockup layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column - Revenue Chart */}
+            <div className="lg:col-span-4">
+              <RevenueChart
+                revenueData={revenueData}
+                patronData={revenueData}
+                campaigns={campaigns}
+                isLoading={revenueLoading}
+              />
+            </div>
+
+            {/* Middle Column - Calendar */}
+            <div className="lg:col-span-3">
+              <CalendarWidget />
+            </div>
+
+            {/* Right Column - Goal Progress */}
+            <div className="lg:col-span-2">
+              <GoalProgress
+                title="Move Goal"
+                currentValue={350}
+                goalValue={500}
+                unit="CALORIES"
+                subtitle="Set your activity goal."
+              />
+            </div>
+
+            {/* Far Right Column - Account Form */}
+            <div className="lg:col-span-3">
+              <AccountForm />
+            </div>
+          </div>
+
+          {/* Second Row - Exercise Chart and Payments */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ExerciseChart />
+            <PaymentsTable />
+          </div>
 
           {/* Campaign Performance & Recent Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
