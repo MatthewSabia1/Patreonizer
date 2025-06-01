@@ -268,6 +268,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Notification routes
+  app.get('/api/notifications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // In a real implementation, you would fetch notifications from database
+      // For now, return sample notifications based on user activity
+      const sampleNotifications = [
+        {
+          id: '1',
+          type: 'sync',
+          title: 'Sync Completed',
+          message: 'Your campaign data has been successfully synchronized.',
+          timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+          isRead: false,
+        },
+        {
+          id: '2',
+          type: 'revenue',
+          title: 'Revenue Milestone',
+          message: 'Congratulations! You\'ve reached $1,000 in monthly revenue.',
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+          isRead: false,
+        },
+        {
+          id: '3',
+          type: 'patron',
+          title: 'New Patron',
+          message: 'You have 3 new patrons this week.',
+          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+          isRead: true,
+        }
+      ];
+      
+      res.json(sampleNotifications);
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+      res.status(500).json({ message: "Failed to fetch notifications" });
+    }
+  });
+
+  app.post('/api/notifications/:notificationId/read', isAuthenticated, async (req: any, res) => {
+    try {
+      const { notificationId } = req.params;
+      
+      // In a real implementation, you would mark the notification as read in database
+      res.json({ message: "Notification marked as read" });
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  app.post('/api/notifications/mark-all-read', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      
+      // In a real implementation, you would mark all notifications as read in database
+      res.json({ message: "All notifications marked as read" });
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      res.status(500).json({ message: "Failed to mark all notifications as read" });
+    }
+  });
+
+  app.delete('/api/notifications/:notificationId', isAuthenticated, async (req: any, res) => {
+    try {
+      const { notificationId } = req.params;
+      
+      // In a real implementation, you would delete the notification from database
+      res.json({ message: "Notification dismissed" });
+    } catch (error) {
+      console.error("Error dismissing notification:", error);
+      res.status(500).json({ message: "Failed to dismiss notification" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
