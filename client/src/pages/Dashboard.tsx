@@ -16,6 +16,7 @@ import { QuickActions } from "@/components/dashboard/QuickActions";
 import { LoadingOverlay } from "@/components/dashboard/LoadingOverlay";
 import { ConnectPatreonModal } from "@/components/dashboard/ConnectPatreonModal";
 import { NotificationCenter } from "@/components/dashboard/NotificationCenter";
+import { AdvancedAnalytics } from "@/components/dashboard/AdvancedAnalytics";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -302,6 +303,20 @@ export default function Dashboard() {
             onViewPatrons={handleViewPatrons}
             onSyncAll={handleSyncAll}
           />
+
+          {/* Advanced Analytics */}
+          <motion.section
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+          >
+            <AdvancedAnalytics
+              campaigns={campaigns}
+              revenueData={revenueData}
+              patronData={revenueData}
+              isLoading={revenueLoading || campaignsLoading}
+            />
+          </motion.section>
 
           {/* Campaign Performance & Recent Activity */}
           <motion.section
