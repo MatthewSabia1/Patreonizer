@@ -23,6 +23,8 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(amount);
   };
 
@@ -34,35 +36,39 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
   const metrics = [
     {
       title: "Monthly Revenue",
-      value: data ? formatCurrency(data.monthlyRevenue) : "$0",
+      value: data ? formatCurrency(data.monthlyRevenue) : formatCurrency(0),
       change: data?.revenueChange || 0,
       icon: DollarSign,
-      color: "text-primary",
+      color: "text-foreground",
       bgColor: "bg-primary/10",
+      iconColor: "text-primary",
     },
     {
       title: "Total Patrons", 
       value: data?.totalPatrons.toLocaleString() || "0",
       change: data?.patronChange || 0,
       icon: Users,
-      color: "text-accent",
-      bgColor: "bg-accent/10",
+      color: "text-foreground",
+      bgColor: "bg-primary/10",
+      iconColor: "text-primary",
     },
     {
-      title: "Avg. Per Patron",
-      value: data ? formatCurrency(data.avgPerPatron) : "$0",
+      title: "Avg Per Patron",
+      value: data ? formatCurrency(data.avgPerPatron) : formatCurrency(0),
       change: data?.avgChange || 0,
       icon: HandHeart,
-      color: "text-blue-500",
-      bgColor: "bg-blue-500/10",
+      color: "text-foreground",
+      bgColor: "bg-primary/10",
+      iconColor: "text-primary",
     },
     {
       title: "New Patrons",
       value: data ? `+${data.newPatrons}` : "+0",
       change: data?.newPatronChange || 0,
       icon: UserPlus,
-      color: "text-green-500",
-      bgColor: "bg-green-500/10",
+      color: "text-foreground",
+      bgColor: "bg-primary/10",
+      iconColor: "text-primary",
     },
   ];
 
@@ -80,31 +86,37 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
           >
-            <Card className="metric-card bg-card border-border hover:shadow-lg transition-all duration-200">
+            <Card className="metric-card overflow-hidden">
               <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <p className="text-muted-foreground text-sm font-medium">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-medium text-muted-foreground">
                       {metric.title}
-                    </p>
-                    {isLoading ? (
-                      <div className="h-8 w-24 bg-muted animate-pulse rounded mt-1" />
-                    ) : (
-                      <p className="text-3xl font-bold mt-1">
-                        <span className={metric.color}>{metric.value}</span>
-                      </p>
-                    )}
-                    <div className="flex items-center space-x-1 mt-2">
-                      <ChangeIcon className={`w-4 h-4 ${isPositive ? 'text-green-500' : 'text-red-500'}`} />
-                      <span className={`text-sm font-medium ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
-                        {formatPercentage(metric.change)}
-                      </span>
-                      <span className="text-muted-foreground text-sm">vs last month</span>
+                    </h3>
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${metric.bgColor}`}>
+                      <Icon className={`w-5 h-5 ${metric.iconColor}`} />
                     </div>
                   </div>
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${metric.bgColor}`}>
-                    <Icon className={`w-6 h-6 ${metric.color}`} />
-                  </div>
+                  
+                  {isLoading ? (
+                    <div className="space-y-2">
+                      <div className="h-8 w-32 bg-muted animate-pulse rounded" />
+                      <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className={`text-3xl font-bold ${metric.color}`}>
+                        {metric.value}
+                      </div>
+                      <div className="flex items-center space-x-1">
+                        <ChangeIcon className={`w-4 h-4 ${isPositive ? 'text-green-500' : 'text-red-500'}`} />
+                        <span className={`text-sm font-medium ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
+                          {formatPercentage(metric.change)}
+                        </span>
+                        <span className="text-muted-foreground text-sm">from last month</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
