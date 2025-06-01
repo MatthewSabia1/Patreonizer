@@ -1,98 +1,75 @@
 import {
   users,
-  patreonAccounts,
-  campaigns,
-  campaignTiers,
+  patreonCampaigns,
   patrons,
-  pledges,
   posts,
-  revenueSnapshots,
-  syncLogs,
+  syncStatus,
+  revenueData,
   type User,
   type UpsertUser,
-  type PatreonAccount,
-  type InsertPatreonAccount,
-  type Campaign,
-  type InsertCampaign,
-  type CampaignTier,
-  type Patron,
+  type InsertPatreonCampaign,
+  type PatreonCampaign,
   type InsertPatron,
-  type Pledge,
-  type InsertPledge,
+  type Patron,
+  type InsertPost,
   type Post,
-  type RevenueSnapshot,
-  type SyncLog,
-  type InsertSyncLog,
+  type InsertSyncStatus,
+  type SyncStatus,
+  type InsertRevenueData,
+  type RevenueData,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, gte, lte, sql } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lte, like, or } from "drizzle-orm";
+import { format } from "date-fns";
 
 export interface IStorage {
-  // User operations (required for Replit Auth)
+  // User operations (mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
 
-  // Patreon account operations
-  createPatreonAccount(account: InsertPatreonAccount): Promise<PatreonAccount>;
-  getPatreonAccountsByUserId(userId: string): Promise<PatreonAccount[]>;
-  getPatreonAccount(id: number): Promise<PatreonAccount | undefined>;
-  updatePatreonAccount(id: number, updates: Partial<InsertPatreonAccount>): Promise<PatreonAccount>;
-  deletePatreonAccount(id: number): Promise<void>;
-
   // Campaign operations
-  upsertCampaign(campaign: InsertCampaign): Promise<Campaign>;
-  getCampaignsByAccountId(accountId: number): Promise<Campaign[]>;
-  getCampaignByPatreonId(patreonCampaignId: string): Promise<Campaign | undefined>;
-
-  // Campaign tier operations
-  upsertCampaignTier(tier: Omit<CampaignTier, 'id' | 'createdAt' | 'updatedAt'>): Promise<CampaignTier>;
-  getTiersByCampaignId(campaignId: number): Promise<CampaignTier[]>;
+  getUserCampaigns(userId: string): Promise<PatreonCampaign[]>;
+  getCampaignById(campaignId: number): Promise<PatreonCampaign | undefined>;
+  createCampaign(campaign: InsertPatreonCampaign): Promise<PatreonCampaign>;
+  updateCampaign(campaignId: number, updates: Partial<InsertPatreonCampaign>): Promise<void>;
+  deleteCampaign(campaignId: number): Promise<void>;
+  getCampaignStats(campaignId: number): Promise<{ patronCount: number; totalPledgeSum: number }>;
 
   // Patron operations
+  getPatrons(userId: string, campaignId?: string, page?: number, limit?: number, search?: string): Promise<{ patrons: Patron[]; total: number }>;
   upsertPatron(patron: InsertPatron): Promise<Patron>;
-  getPatronsByAccountId(accountId: number): Promise<Patron[]>;
-  getPatronByPatreonId(patreonUserId: string, accountId: number): Promise<Patron | undefined>;
-
-  // Pledge operations
-  upsertPledge(pledge: InsertPledge): Promise<Pledge>;
-  getPledgesByCampaignId(campaignId: number): Promise<Pledge[]>;
-  getActivePledgesByAccountId(accountId: number): Promise<(Pledge & { patron: Patron; campaign: Campaign; tier?: CampaignTier })[]>;
+  exportPatronsCSV(userId: string, campaignId?: string): Promise<string>;
 
   // Post operations
-  upsertPost(post: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>): Promise<Post>;
-  getPostsByCampaignId(campaignId: number): Promise<Post[]>;
-
-  // Revenue snapshot operations
-  createRevenueSnapshot(snapshot: Omit<RevenueSnapshot, 'id' | 'createdAt'>): Promise<RevenueSnapshot>;
-  getRevenueSnapshots(campaignId: number, startDate?: Date, endDate?: Date): Promise<RevenueSnapshot[]>;
-
-  // Analytics operations
-  getDashboardMetrics(userId: string): Promise<{
-    totalRevenue: string;
-    totalPatrons: number;
-    totalCampaigns: number;
-    avgPledgeAmount: string;
-    revenueGrowth: number;
-    patronGrowth: number;
-  }>;
-
-  getRecentActivity(userId: string, limit?: number): Promise<{
-    type: string;
-    description: string;
-    timestamp: Date;
-    campaignName: string;
-    patronName?: string;
-    amount?: string;
-  }[]>;
+  getPosts(userId: string, campaignId?: string, page?: number, limit?: number): Promise<{ posts: Post[]; total: number }>;
+  upsertPost(post: InsertPost): Promise<Post>;
 
   // Sync operations
-  createSyncLog(log: InsertSyncLog): Promise<SyncLog>;
-  updateSyncLog(id: number, updates: Partial<SyncLog>): Promise<SyncLog>;
-  getLatestSyncLogs(accountId: number, limit?: number): Promise<SyncLog[]>;
+  createSyncStatus(sync: InsertSyncStatus): Promise<SyncStatus>;
+  updateSyncStatus(syncId: number, updates: Partial<InsertSyncStatus>): Promise<void>;
+  getSyncStatus(syncId: number): Promise<SyncStatus | undefined>;
+  getActiveSyncs(userId: string): Promise<SyncStatus[]>;
+
+  // Revenue data operations
+  upsertRevenueData(revenue: InsertRevenueData): Promise<RevenueData>;
+  getRevenueData(userId: string, days: number, campaignId?: string): Promise<RevenueData[]>;
+
+  // Dashboard operations
+  getDashboardMetrics(userId: string): Promise<{
+    monthlyRevenue: number;
+    revenueChange: number;
+    totalPatrons: number;
+    patronChange: number;
+    avgPerPatron: number;
+    avgChange: number;
+    newPatrons: number;
+    newPatronChange: number;
+  }>;
+  getRecentActivity(userId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
-  // User operations
+  // User operations (mandatory for Replit Auth)
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
@@ -113,123 +90,126 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  // Patreon account operations
-  async createPatreonAccount(account: InsertPatreonAccount): Promise<PatreonAccount> {
-    const [newAccount] = await db
-      .insert(patreonAccounts)
-      .values(account)
-      .returning();
-    return newAccount;
-  }
-
-  async getPatreonAccountsByUserId(userId: string): Promise<PatreonAccount[]> {
-    return await db
-      .select()
-      .from(patreonAccounts)
-      .where(and(eq(patreonAccounts.userId, userId), eq(patreonAccounts.isActive, true)));
-  }
-
-  async getPatreonAccount(id: number): Promise<PatreonAccount | undefined> {
-    const [account] = await db
-      .select()
-      .from(patreonAccounts)
-      .where(eq(patreonAccounts.id, id));
-    return account;
-  }
-
-  async updatePatreonAccount(id: number, updates: Partial<InsertPatreonAccount>): Promise<PatreonAccount> {
-    const [account] = await db
-      .update(patreonAccounts)
-      .set({ ...updates, updatedAt: new Date() })
-      .where(eq(patreonAccounts.id, id))
-      .returning();
-    return account;
-  }
-
-  async deletePatreonAccount(id: number): Promise<void> {
-    await db
-      .update(patreonAccounts)
-      .set({ isActive: false, updatedAt: new Date() })
-      .where(eq(patreonAccounts.id, id));
-  }
-
   // Campaign operations
-  async upsertCampaign(campaign: InsertCampaign): Promise<Campaign> {
-    const [existingCampaign] = await db
-      .select()
-      .from(campaigns)
-      .where(eq(campaigns.patreonCampaignId, campaign.patreonCampaignId));
-
-    if (existingCampaign) {
-      const [updatedCampaign] = await db
-        .update(campaigns)
-        .set({ ...campaign, updatedAt: new Date() })
-        .where(eq(campaigns.id, existingCampaign.id))
-        .returning();
-      return updatedCampaign;
-    } else {
-      const [newCampaign] = await db
-        .insert(campaigns)
-        .values(campaign)
-        .returning();
-      return newCampaign;
-    }
-  }
-
-  async getCampaignsByAccountId(accountId: number): Promise<Campaign[]> {
+  async getUserCampaigns(userId: string): Promise<PatreonCampaign[]> {
     return await db
       .select()
-      .from(campaigns)
-      .where(eq(campaigns.patreonAccountId, accountId));
+      .from(patreonCampaigns)
+      .where(eq(patreonCampaigns.userId, userId))
+      .orderBy(desc(patreonCampaigns.createdAt));
   }
 
-  async getCampaignByPatreonId(patreonCampaignId: string): Promise<Campaign | undefined> {
+  async getCampaignById(campaignId: number): Promise<PatreonCampaign | undefined> {
     const [campaign] = await db
       .select()
-      .from(campaigns)
-      .where(eq(campaigns.patreonCampaignId, patreonCampaignId));
+      .from(patreonCampaigns)
+      .where(eq(patreonCampaigns.id, campaignId));
     return campaign;
   }
 
-  // Campaign tier operations
-  async upsertCampaignTier(tier: Omit<CampaignTier, 'id' | 'createdAt' | 'updatedAt'>): Promise<CampaignTier> {
-    const [existingTier] = await db
-      .select()
-      .from(campaignTiers)
-      .where(eq(campaignTiers.patreonTierId, tier.patreonTierId));
-
-    if (existingTier) {
-      const [updatedTier] = await db
-        .update(campaignTiers)
-        .set({ ...tier, updatedAt: new Date() })
-        .where(eq(campaignTiers.id, existingTier.id))
-        .returning();
-      return updatedTier;
-    } else {
-      const [newTier] = await db
-        .insert(campaignTiers)
-        .values(tier)
-        .returning();
-      return newTier;
-    }
+  async createCampaign(campaign: InsertPatreonCampaign): Promise<PatreonCampaign> {
+    const [newCampaign] = await db
+      .insert(patreonCampaigns)
+      .values(campaign)
+      .returning();
+    return newCampaign;
   }
 
-  async getTiersByCampaignId(campaignId: number): Promise<CampaignTier[]> {
-    return await db
-      .select()
-      .from(campaignTiers)
-      .where(eq(campaignTiers.campaignId, campaignId));
+  async updateCampaign(campaignId: number, updates: Partial<InsertPatreonCampaign>): Promise<void> {
+    await db
+      .update(patreonCampaigns)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(patreonCampaigns.id, campaignId));
+  }
+
+  async deleteCampaign(campaignId: number): Promise<void> {
+    await db.delete(patreonCampaigns).where(eq(patreonCampaigns.id, campaignId));
+  }
+
+  async getCampaignStats(campaignId: number): Promise<{ patronCount: number; totalPledgeSum: number }> {
+    const [stats] = await db
+      .select({
+        patronCount: sql<number>`count(${patrons.id})`,
+        totalPledgeSum: sql<number>`sum(${patrons.currentlyEntitledAmountCents}) / 100`,
+      })
+      .from(patrons)
+      .where(eq(patrons.campaignId, campaignId));
+
+    return {
+      patronCount: stats?.patronCount || 0,
+      totalPledgeSum: stats?.totalPledgeSum || 0,
+    };
   }
 
   // Patron operations
+  async getPatrons(
+    userId: string,
+    campaignId?: string,
+    page: number = 1,
+    limit: number = 50,
+    search: string = ""
+  ): Promise<{ patrons: Patron[]; total: number }> {
+    const offset = (page - 1) * limit;
+
+    // Get user's campaign IDs
+    const userCampaigns = await db
+      .select({ id: patreonCampaigns.id })
+      .from(patreonCampaigns)
+      .where(eq(patreonCampaigns.userId, userId));
+
+    const campaignIds = userCampaigns.map(c => c.id);
+
+    if (campaignIds.length === 0) {
+      return { patrons: [], total: 0 };
+    }
+
+    let whereConditions = sql`${patrons.campaignId} IN ${campaignIds}`;
+
+    if (campaignId && campaignId !== "all") {
+      whereConditions = and(
+        whereConditions,
+        eq(patrons.campaignId, parseInt(campaignId))
+      );
+    }
+
+    if (search) {
+      whereConditions = and(
+        whereConditions,
+        or(
+          like(patrons.fullName, `%${search}%`),
+          like(patrons.email, `%${search}%`)
+        )
+      );
+    }
+
+    const [patronsList, [{ total }]] = await Promise.all([
+      db
+        .select()
+        .from(patrons)
+        .where(whereConditions)
+        .orderBy(desc(patrons.pledgeRelationshipStart))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ total: sql<number>`count(*)` })
+        .from(patrons)
+        .where(whereConditions),
+    ]);
+
+    return {
+      patrons: patronsList,
+      total: total || 0,
+    };
+  }
+
   async upsertPatron(patron: InsertPatron): Promise<Patron> {
     const [existingPatron] = await db
       .select()
       .from(patrons)
       .where(
         and(
-          eq(patrons.patreonUserId, patron.patreonUserId),
-          eq(patrons.patreonAccountId, patron.patreonAccountId)
+          eq(patrons.campaignId, patron.campaignId),
+          eq(patrons.patreonUserId, patron.patreonUserId)
         )
       );
 
@@ -241,93 +221,94 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return updatedPatron;
     } else {
-      const [newPatron] = await db
-        .insert(patrons)
-        .values(patron)
-        .returning();
+      const [newPatron] = await db.insert(patrons).values(patron).returning();
       return newPatron;
     }
   }
 
-  async getPatronsByAccountId(accountId: number): Promise<Patron[]> {
-    return await db
-      .select()
-      .from(patrons)
-      .where(eq(patrons.patreonAccountId, accountId));
-  }
+  async exportPatronsCSV(userId: string, campaignId?: string): Promise<string> {
+    const { patrons: patronsList } = await this.getPatrons(userId, campaignId, 1, 10000);
 
-  async getPatronByPatreonId(patreonUserId: string, accountId: number): Promise<Patron | undefined> {
-    const [patron] = await db
-      .select()
-      .from(patrons)
-      .where(
-        and(
-          eq(patrons.patreonUserId, patreonUserId),
-          eq(patrons.patreonAccountId, accountId)
-        )
-      );
-    return patron;
-  }
+    const headers = [
+      "Full Name",
+      "Email", 
+      "Patron Status",
+      "Currently Entitled Amount",
+      "Lifetime Support",
+      "Pledge Start Date",
+      "Last Charge Date",
+      "Last Charge Status"
+    ];
 
-  // Pledge operations
-  async upsertPledge(pledge: InsertPledge): Promise<Pledge> {
-    const [existingPledge] = await db
-      .select()
-      .from(pledges)
-      .where(eq(pledges.patreonPledgeId, pledge.patreonPledgeId));
+    const rows = patronsList.map(patron => [
+      patron.fullName || "",
+      patron.email || "",
+      patron.patronStatus || "",
+      `$${(patron.currentlyEntitledAmountCents / 100).toFixed(2)}`,
+      `$${(patron.lifetimeSupportCents / 100).toFixed(2)}`,
+      patron.pledgeRelationshipStart ? format(patron.pledgeRelationshipStart, "yyyy-MM-dd") : "",
+      patron.lastChargeDate ? format(patron.lastChargeDate, "yyyy-MM-dd") : "",
+      patron.lastChargeStatus || ""
+    ]);
 
-    if (existingPledge) {
-      const [updatedPledge] = await db
-        .update(pledges)
-        .set({ ...pledge, updatedAt: new Date() })
-        .where(eq(pledges.id, existingPledge.id))
-        .returning();
-      return updatedPledge;
-    } else {
-      const [newPledge] = await db
-        .insert(pledges)
-        .values(pledge)
-        .returning();
-      return newPledge;
-    }
-  }
+    const csvContent = [headers, ...rows]
+      .map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(","))
+      .join("\n");
 
-  async getPledgesByCampaignId(campaignId: number): Promise<Pledge[]> {
-    return await db
-      .select()
-      .from(pledges)
-      .where(eq(pledges.campaignId, campaignId));
-  }
-
-  async getActivePledgesByAccountId(accountId: number): Promise<(Pledge & { patron: Patron; campaign: Campaign; tier?: CampaignTier })[]> {
-    const result = await db
-      .select({
-        pledge: pledges,
-        patron: patrons,
-        campaign: campaigns,
-        tier: campaignTiers,
-      })
-      .from(pledges)
-      .innerJoin(patrons, eq(pledges.patronId, patrons.id))
-      .innerJoin(campaigns, eq(pledges.campaignId, campaigns.id))
-      .leftJoin(campaignTiers, eq(pledges.tierId, campaignTiers.id))
-      .where(
-        and(
-          eq(campaigns.patreonAccountId, accountId),
-          eq(pledges.status, 'active_patron')
-        )
-      );
-
-    return result.map(row => ({
-      ...row.pledge,
-      patron: row.patron,
-      campaign: row.campaign,
-      tier: row.tier || undefined,
-    }));
+    return csvContent;
   }
 
   // Post operations
-  async upsertPost(post: Omit<Post, 'id' | 'createdAt' | 'updatedAt'>): Promise<Post> {
+  async getPosts(
+    userId: string,
+    campaignId?: string,
+    page: number = 1,
+    limit: number = 20
+  ): Promise<{ posts: Post[]; total: number }> {
+    const offset = (page - 1) * limit;
+
+    // Get user's campaign IDs
+    const userCampaigns = await db
+      .select({ id: patreonCampaigns.id })
+      .from(patreonCampaigns)
+      .where(eq(patreonCampaigns.userId, userId));
+
+    const campaignIds = userCampaigns.map(c => c.id);
+
+    if (campaignIds.length === 0) {
+      return { posts: [], total: 0 };
+    }
+
+    let whereConditions = sql`${posts.campaignId} IN ${campaignIds}`;
+
+    if (campaignId && campaignId !== "all") {
+      whereConditions = and(
+        whereConditions,
+        eq(posts.campaignId, parseInt(campaignId))
+      );
+    }
+
+    const [postsList, [{ total }]] = await Promise.all([
+      db
+        .select()
+        .from(posts)
+        .where(whereConditions)
+        .orderBy(desc(posts.publishedAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ total: sql<number>`count(*)` })
+        .from(posts)
+        .where(whereConditions),
+    ]);
+
+    return {
+      posts: postsList,
+      total: total || 0,
+    };
+  }
+
+  async upsertPost(post: InsertPost): Promise<Post> {
     const [existingPost] = await db
       .select()
       .from(posts)
@@ -341,241 +322,314 @@ export class DatabaseStorage implements IStorage {
         .returning();
       return updatedPost;
     } else {
-      const [newPost] = await db
-        .insert(posts)
-        .values(post)
-        .returning();
+      const [newPost] = await db.insert(posts).values(post).returning();
       return newPost;
     }
   }
 
-  async getPostsByCampaignId(campaignId: number): Promise<Post[]> {
+  // Sync operations
+  async createSyncStatus(sync: InsertSyncStatus): Promise<SyncStatus> {
+    const [newSync] = await db.insert(syncStatus).values(sync).returning();
+    return newSync;
+  }
+
+  async updateSyncStatus(syncId: number, updates: Partial<InsertSyncStatus>): Promise<void> {
+    await db
+      .update(syncStatus)
+      .set(updates)
+      .where(eq(syncStatus.id, syncId));
+  }
+
+  async getSyncStatus(syncId: number): Promise<SyncStatus | undefined> {
+    const [sync] = await db
+      .select()
+      .from(syncStatus)
+      .where(eq(syncStatus.id, syncId));
+    return sync;
+  }
+
+  async getActiveSyncs(userId: string): Promise<SyncStatus[]> {
     return await db
-      .select()
-      .from(posts)
-      .where(eq(posts.campaignId, campaignId))
-      .orderBy(desc(posts.publishedAt));
-  }
-
-  // Revenue snapshot operations
-  async createRevenueSnapshot(snapshot: Omit<RevenueSnapshot, 'id' | 'createdAt'>): Promise<RevenueSnapshot> {
-    const [newSnapshot] = await db
-      .insert(revenueSnapshots)
-      .values(snapshot)
-      .returning();
-    return newSnapshot;
-  }
-
-  async getRevenueSnapshots(campaignId: number, startDate?: Date, endDate?: Date): Promise<RevenueSnapshot[]> {
-    let query = db
-      .select()
-      .from(revenueSnapshots)
-      .where(eq(revenueSnapshots.campaignId, campaignId));
-
-    if (startDate) {
-      query = query.where(gte(revenueSnapshots.snapshotDate, startDate));
-    }
-    if (endDate) {
-      query = query.where(lte(revenueSnapshots.snapshotDate, endDate));
-    }
-
-    return await query.orderBy(desc(revenueSnapshots.snapshotDate));
-  }
-
-  // Analytics operations
-  async getDashboardMetrics(userId: string): Promise<{
-    totalRevenue: string;
-    totalPatrons: number;
-    totalCampaigns: number;
-    avgPledgeAmount: string;
-    revenueGrowth: number;
-    patronGrowth: number;
-  }> {
-    // Get user's patreon accounts
-    const userAccounts = await db
-      .select({ id: patreonAccounts.id })
-      .from(patreonAccounts)
-      .where(and(eq(patreonAccounts.userId, userId), eq(patreonAccounts.isActive, true)));
-
-    const accountIds = userAccounts.map(acc => acc.id);
-
-    if (accountIds.length === 0) {
-      return {
-        totalRevenue: "0",
-        totalPatrons: 0,
-        totalCampaigns: 0,
-        avgPledgeAmount: "0",
-        revenueGrowth: 0,
-        patronGrowth: 0,
-      };
-    }
-
-    // Get current metrics
-    const campaignStats = await db
       .select({
-        totalRevenue: sql<string>`COALESCE(SUM(${campaigns.pledgeSum}), 0)`,
-        totalPatrons: sql<number>`COALESCE(SUM(${campaigns.patronCount}), 0)`,
-        totalCampaigns: sql<number>`COUNT(${campaigns.id})`,
+        id: syncStatus.id,
+        campaignId: syncStatus.campaignId,
+        syncType: syncStatus.syncType,
+        status: syncStatus.status,
+        progress: syncStatus.progress,
+        totalItems: syncStatus.totalItems,
+        processedItems: syncStatus.processedItems,
+        errorMessage: syncStatus.errorMessage,
+        startedAt: syncStatus.startedAt,
+        completedAt: syncStatus.completedAt,
+        createdAt: syncStatus.createdAt,
       })
-      .from(campaigns)
-      .where(sql`${campaigns.patreonAccountId} IN (${sql.join(accountIds, sql`, `)})`);
-
-    const currentStats = campaignStats[0] || {
-      totalRevenue: "0",
-      totalPatrons: 0,
-      totalCampaigns: 0,
-    };
-
-    // Calculate average pledge amount
-    const avgPledgeAmount = currentStats.totalPatrons > 0 
-      ? (parseFloat(currentStats.totalRevenue) / currentStats.totalPatrons).toFixed(2)
-      : "0";
-
-    // Get growth metrics (comparing last 30 days to previous 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const sixtyDaysAgo = new Date();
-    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
-
-    // For now, return placeholder growth values since we need more complex date-based calculations
-    return {
-      totalRevenue: currentStats.totalRevenue,
-      totalPatrons: currentStats.totalPatrons,
-      totalCampaigns: currentStats.totalCampaigns,
-      avgPledgeAmount,
-      revenueGrowth: 0, // TODO: Implement proper growth calculation
-      patronGrowth: 0,  // TODO: Implement proper growth calculation
-    };
+      .from(syncStatus)
+      .innerJoin(patreonCampaigns, eq(syncStatus.campaignId, patreonCampaigns.id))
+      .where(
+        and(
+          eq(patreonCampaigns.userId, userId),
+          or(
+            eq(syncStatus.status, "pending"),
+            eq(syncStatus.status, "in_progress")
+          )
+        )
+      )
+      .orderBy(desc(syncStatus.createdAt));
   }
 
-  async getRecentActivity(userId: string, limit: number = 10): Promise<{
-    type: string;
-    description: string;
-    timestamp: Date;
-    campaignName: string;
-    patronName?: string;
-    amount?: string;
-  }[]> {
-    // Get user's patreon accounts
-    const userAccounts = await db
-      .select({ id: patreonAccounts.id })
-      .from(patreonAccounts)
-      .where(and(eq(patreonAccounts.userId, userId), eq(patreonAccounts.isActive, true)));
+  // Revenue data operations
+  async upsertRevenueData(revenue: InsertRevenueData): Promise<RevenueData> {
+    const [existingRevenue] = await db
+      .select()
+      .from(revenueData)
+      .where(
+        and(
+          eq(revenueData.campaignId, revenue.campaignId),
+          eq(revenueData.date, revenue.date)
+        )
+      );
 
-    const accountIds = userAccounts.map(acc => acc.id);
+    if (existingRevenue) {
+      const [updatedRevenue] = await db
+        .update(revenueData)
+        .set(revenue)
+        .where(eq(revenueData.id, existingRevenue.id))
+        .returning();
+      return updatedRevenue;
+    } else {
+      const [newRevenue] = await db.insert(revenueData).values(revenue).returning();
+      return newRevenue;
+    }
+  }
 
-    if (accountIds.length === 0) {
+  async getRevenueData(userId: string, days: number, campaignId?: string): Promise<RevenueData[]> {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Get user's campaign IDs
+    const userCampaigns = await db
+      .select({ id: patreonCampaigns.id })
+      .from(patreonCampaigns)
+      .where(eq(patreonCampaigns.userId, userId));
+
+    const campaignIds = userCampaigns.map(c => c.id);
+
+    if (campaignIds.length === 0) {
       return [];
     }
 
-    // Get recent pledges (new patrons, upgrades, etc.)
-    const recentPledges = await db
+    let whereConditions = and(
+      sql`${revenueData.campaignId} IN ${campaignIds}`,
+      gte(revenueData.date, startDate),
+      lte(revenueData.date, endDate)
+    );
+
+    if (campaignId && campaignId !== "all") {
+      whereConditions = and(
+        whereConditions,
+        eq(revenueData.campaignId, parseInt(campaignId))
+      );
+    }
+
+    return await db
+      .select()
+      .from(revenueData)
+      .where(whereConditions)
+      .orderBy(revenueData.date);
+  }
+
+  // Dashboard operations
+  async getDashboardMetrics(userId: string): Promise<{
+    monthlyRevenue: number;
+    revenueChange: number;
+    totalPatrons: number;
+    patronChange: number;
+    avgPerPatron: number;
+    avgChange: number;
+    newPatrons: number;
+    newPatronChange: number;
+  }> {
+    // Get user's campaigns
+    const userCampaigns = await db
+      .select()
+      .from(patreonCampaigns)
+      .where(eq(patreonCampaigns.userId, userId));
+
+    if (userCampaigns.length === 0) {
+      return {
+        monthlyRevenue: 0,
+        revenueChange: 0,
+        totalPatrons: 0,
+        patronChange: 0,
+        avgPerPatron: 0,
+        avgChange: 0,
+        newPatrons: 0,
+        newPatronChange: 0,
+      };
+    }
+
+    const campaignIds = userCampaigns.map(c => c.id);
+
+    // Calculate current metrics
+    const currentRevenue = userCampaigns.reduce(
+      (sum, campaign) => sum + parseFloat(campaign.pledgeSum || "0"),
+      0
+    );
+    const currentPatrons = userCampaigns.reduce(
+      (sum, campaign) => sum + (campaign.patronCount || 0),
+      0
+    );
+
+    // Get revenue data for last 60 days to calculate changes
+    const sixtyDaysAgo = new Date();
+    sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [recentRevenue, previousRevenue] = await Promise.all([
+      db
+        .select({
+          revenue: sql<number>`sum(${revenueData.pledgeSum})`,
+          patrons: sql<number>`sum(${revenueData.patronCount})`,
+        })
+        .from(revenueData)
+        .where(
+          and(
+            sql`${revenueData.campaignId} IN ${campaignIds}`,
+            gte(revenueData.date, thirtyDaysAgo)
+          )
+        ),
+      db
+        .select({
+          revenue: sql<number>`sum(${revenueData.pledgeSum})`,
+          patrons: sql<number>`sum(${revenueData.patronCount})`,
+        })
+        .from(revenueData)
+        .where(
+          and(
+            sql`${revenueData.campaignId} IN ${campaignIds}`,
+            gte(revenueData.date, sixtyDaysAgo),
+            lte(revenueData.date, thirtyDaysAgo)
+          )
+        ),
+    ]);
+
+    // Calculate changes
+    const revenueChange = previousRevenue[0]?.revenue
+      ? ((currentRevenue - previousRevenue[0].revenue) / previousRevenue[0].revenue) * 100
+      : 0;
+
+    const patronChange = previousRevenue[0]?.patrons
+      ? ((currentPatrons - previousRevenue[0].patrons) / previousRevenue[0].patrons) * 100
+      : 0;
+
+    const avgPerPatron = currentPatrons > 0 ? currentRevenue / currentPatrons : 0;
+    const prevAvgPerPatron = previousRevenue[0]?.patrons > 0 
+      ? previousRevenue[0].revenue / previousRevenue[0].patrons 
+      : 0;
+    const avgChange = prevAvgPerPatron > 0 
+      ? ((avgPerPatron - prevAvgPerPatron) / prevAvgPerPatron) * 100 
+      : 0;
+
+    // Count new patrons in last 30 days
+    const [newPatronsResult] = await db
       .select({
-        type: sql<string>`'pledge'`,
-        timestamp: pledges.createdAt,
-        campaignName: campaigns.name,
-        patronName: sql<string>`COALESCE(${patrons.fullName}, CONCAT(${patrons.firstName}, ' ', ${patrons.lastName}))`,
-        amount: pledges.amount,
-        status: pledges.status,
+        count: sql<number>`count(*)`,
       })
-      .from(pledges)
-      .innerJoin(campaigns, eq(pledges.campaignId, campaigns.id))
-      .innerJoin(patrons, eq(pledges.patronId, patrons.id))
-      .where(sql`${campaigns.patreonAccountId} IN (${sql.join(accountIds, sql`, `)})`)
-      .orderBy(desc(pledges.createdAt))
-      .limit(limit);
+      .from(patrons)
+      .where(
+        and(
+          sql`${patrons.campaignId} IN ${campaignIds}`,
+          gte(patrons.pledgeRelationshipStart, thirtyDaysAgo)
+        )
+      );
 
-    // Get recent posts
-    const recentPosts = await db
-      .select({
-        type: sql<string>`'post'`,
-        timestamp: posts.publishedAt,
-        campaignName: campaigns.name,
-        title: posts.title,
-        likeCount: posts.likeCount,
-      })
-      .from(posts)
-      .innerJoin(campaigns, eq(posts.campaignId, campaigns.id))
-      .where(sql`${campaigns.patreonAccountId} IN (${sql.join(accountIds, sql`, `)})`)
-      .orderBy(desc(posts.publishedAt))
-      .limit(limit);
+    const newPatrons = newPatronsResult?.count || 0;
 
-    // Combine and format activities
-    const activities: {
-      type: string;
-      description: string;
-      timestamp: Date;
-      campaignName: string;
-      patronName?: string;
-      amount?: string;
-    }[] = [];
+    return {
+      monthlyRevenue: currentRevenue,
+      revenueChange,
+      totalPatrons: currentPatrons,
+      patronChange,
+      avgPerPatron,
+      avgChange,
+      newPatrons,
+      newPatronChange: 0, // Would need historical tracking
+    };
+  }
 
-    // Add pledge activities
-    recentPledges.forEach(pledge => {
-      if (!pledge.timestamp) return;
-      
-      let description = "";
-      if (pledge.status === "active_patron") {
-        description = `${pledge.patronName} became a patron`;
-      } else if (pledge.status === "former_patron") {
-        description = `${pledge.patronName} cancelled their pledge`;
-      } else {
-        description = `${pledge.patronName} updated their pledge`;
-      }
+  async getRecentActivity(userId: string): Promise<any[]> {
+    // Get user's campaigns
+    const userCampaigns = await db
+      .select({ id: patreonCampaigns.id })
+      .from(patreonCampaigns)
+      .where(eq(patreonCampaigns.userId, userId));
 
+    const campaignIds = userCampaigns.map(c => c.id);
+
+    if (campaignIds.length === 0) {
+      return [];
+    }
+
+    // Get recent patrons and posts as activity
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const [recentPatrons, recentPosts] = await Promise.all([
+      db
+        .select()
+        .from(patrons)
+        .where(
+          and(
+            sql`${patrons.campaignId} IN ${campaignIds}`,
+            gte(patrons.pledgeRelationshipStart, sevenDaysAgo)
+          )
+        )
+        .orderBy(desc(patrons.pledgeRelationshipStart))
+        .limit(5),
+      db
+        .select()
+        .from(posts)
+        .where(
+          and(
+            sql`${posts.campaignId} IN ${campaignIds}`,
+            gte(posts.publishedAt, sevenDaysAgo)
+          )
+        )
+        .orderBy(desc(posts.publishedAt))
+        .limit(5),
+    ]);
+
+    const activities: any[] = [];
+
+    // Add patron activities
+    recentPatrons.forEach(patron => {
       activities.push({
-        type: "patron",
-        description,
-        timestamp: pledge.timestamp,
-        campaignName: pledge.campaignName,
-        patronName: pledge.patronName || undefined,
-        amount: pledge.amount ? `$${pledge.amount}` : undefined,
+        id: `patron-${patron.id}`,
+        type: 'new_patron',
+        title: `${patron.fullName || 'Unknown'} became a patron`,
+        description: `$${(patron.currentlyEntitledAmountCents / 100).toFixed(2)}/month`,
+        timestamp: patron.pledgeRelationshipStart,
       });
     });
 
     // Add post activities
     recentPosts.forEach(post => {
-      if (!post.timestamp) return;
-      
       activities.push({
-        type: "post",
-        description: `New post published: "${post.title}"`,
-        timestamp: post.timestamp,
-        campaignName: post.campaignName,
+        id: `post-${post.id}`,
+        type: 'new_post',
+        title: 'New post published',
+        description: post.title || 'Untitled post',
+        timestamp: post.publishedAt,
       });
     });
 
-    // Sort by timestamp and limit
+    // Sort by timestamp and return latest
     return activities
-      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-      .slice(0, limit);
-  }
-
-  // Sync operations
-  async createSyncLog(log: InsertSyncLog): Promise<SyncLog> {
-    const [newLog] = await db
-      .insert(syncLogs)
-      .values(log)
-      .returning();
-    return newLog;
-  }
-
-  async updateSyncLog(id: number, updates: Partial<SyncLog>): Promise<SyncLog> {
-    const [updatedLog] = await db
-      .update(syncLogs)
-      .set(updates)
-      .where(eq(syncLogs.id, id))
-      .returning();
-    return updatedLog;
-  }
-
-  async getLatestSyncLogs(accountId: number, limit: number = 5): Promise<SyncLog[]> {
-    return await db
-      .select()
-      .from(syncLogs)
-      .where(eq(syncLogs.patreonAccountId, accountId))
-      .orderBy(desc(syncLogs.startedAt))
-      .limit(limit);
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 10);
   }
 }
 

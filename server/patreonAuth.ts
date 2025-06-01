@@ -1,128 +1,121 @@
 import passport from "passport";
 import { Strategy as OAuth2Strategy } from "passport-oauth2";
 import type { Express } from "express";
+import { patreonApi } from "./patreonApi";
 import { storage } from "./storage";
+import { syncService } from "./syncService";
 
-const PATREON_CLIENT_ID = process.env.PATREON_CLIENT_ID || process.env.PATREON_CLIENT_ID_ENV_VAR || "patreon_client_id";
-const PATREON_CLIENT_SECRET = process.env.PATREON_CLIENT_SECRET || process.env.PATREON_CLIENT_SECRET_ENV_VAR || "patreon_client_secret";
-
-if (!process.env.REPLIT_DOMAINS) {
-  throw new Error("Environment variable REPLIT_DOMAINS not provided");
-}
+const PATREON_CLIENT_ID = process.env.PATREON_CLIENT_ID || process.env.VITE_PATREON_CLIENT_ID || "default_client_id";
+const PATREON_CLIENT_SECRET = process.env.PATREON_CLIENT_SECRET || process.env.VITE_PATREON_CLIENT_SECRET || "default_secret";
 
 export function setupPatreonAuth(app: Express) {
-  // Configure Patreon OAuth2 strategy
-  const domains = process.env.REPLIT_DOMAINS!.split(",");
-  
-  domains.forEach(domain => {
-    const strategyName = `patreon:${domain}`;
-    
-    passport.use(strategyName, new OAuth2Strategy({
-      authorizationURL: "https://www.patreon.com/oauth2/authorize",
-      tokenURL: "https://www.patreon.com/api/oauth2/token",
-      clientID: PATREON_CLIENT_ID,
-      clientSecret: PATREON_CLIENT_SECRET,
-      callbackURL: `https://${domain}/api/patreon/callback`,
-      scope: ["identity", "identity[email]", "campaigns", "campaigns.members"],
-    }, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
-      try {
-        // The profile will be populated by our custom userProfile function
-        return done(null, {
-          accessToken,
-          refreshToken,
-          profile,
-        });
-      } catch (error) {
-        return done(error);
-      }
-    }));
+  // Get the base URL from REPLIT_DOMAINS or fallback
+  const baseUrl = process.env.REPLIT_DOMAINS ? 
+    `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : 
+    'http://localhost:5000';
 
-    // Custom userProfile function to get Patreon user data
-    (passport._strategies[strategyName] as any).userProfile = function(accessToken: string, done: any) {
-      this._oauth2.get(
-        "https://www.patreon.com/api/oauth2/v2/identity?include=campaigns&fields%5Buser%5D=email,first_name,last_name,full_name,image_url,url&fields%5Bcampaign%5D=creation_name,display_name,image_url,is_nsfw,is_monthly,patron_count,pledge_sum,published_at,summary,url",
-        accessToken,
-        (err: any, body: string) => {
-          if (err) {
-            return done(err);
-          }
-
-          try {
-            const data = JSON.parse(body);
-            return done(null, data);
-          } catch (parseError) {
-            return done(parseError);
-          }
-        }
-      );
-    };
-  });
+  passport.use('patreon', new OAuth2Strategy({
+    authorizationURL: 'https://www.patreon.com/oauth2/authorize',
+    tokenURL: 'https://www.patreon.com/api/oauth2/token',
+    clientID: PATREON_CLIENT_ID,
+    clientSecret: PATREON_CLIENT_SECRET,
+    callbackURL: `${baseUrl}/api/auth/patreon/callback`,
+    scope: 'identity campaigns campaigns.members pledges-to-me my-campaign',
+  }, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
+    try {
+      // The profile will be empty since we're using OAuth2Strategy
+      // We'll fetch the user data using the access token
+      done(null, { accessToken, refreshToken });
+    } catch (error) {
+      done(error);
+    }
+  }));
 
   // Patreon OAuth routes
-  app.get("/api/patreon/connect", (req, res, next) => {
-    const strategyName = `patreon:${req.hostname}`;
-    passport.authenticate(strategyName, {
-      scope: ["identity", "identity[email]", "campaigns", "campaigns.members"],
+  app.get('/api/auth/patreon', (req: any, res, next) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Must be logged in to connect Patreon" });
+    }
+    
+    // Store user ID in session for later use
+    req.session.connectingUserId = req.user.claims.sub;
+    
+    passport.authenticate('patreon', {
+      scope: 'identity campaigns campaigns.members pledges-to-me my-campaign'
     })(req, res, next);
   });
 
-  app.get("/api/patreon/callback", (req, res, next) => {
-    const strategyName = `patreon:${req.hostname}`;
-    
-    passport.authenticate(strategyName, async (err: any, authData: any) => {
-      if (err) {
-        console.error("Patreon auth error:", err);
-        return res.redirect("/?error=patreon_auth_failed");
-      }
-
-      if (!authData) {
-        return res.redirect("/?error=patreon_auth_cancelled");
-      }
-
+  app.get('/api/auth/patreon/callback', 
+    passport.authenticate('patreon', { session: false }),
+    async (req: any, res) => {
       try {
-        const user = req.user as any;
-        if (!user?.claims?.sub) {
-          return res.redirect("/?error=not_logged_in");
+        const { accessToken, refreshToken } = req.user;
+        const userId = req.session.connectingUserId;
+
+        if (!userId) {
+          return res.redirect('/?error=session_expired');
         }
 
-        const { accessToken, refreshToken, profile } = authData;
-        const userData = profile.data;
-        const campaigns = profile.included?.filter((item: any) => item.type === "campaign") || [];
+        // Fetch user identity and campaigns from Patreon
+        const identity = await patreonApi.getCurrentUser(accessToken);
+        const campaigns = await patreonApi.getUserCampaigns(accessToken);
 
-        // Store the Patreon account
-        const patreonAccount = await storage.createPatreonAccount({
-          userId: user.claims.sub,
-          patreonUserId: userData.id,
-          accessToken,
-          refreshToken,
-          tokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-          accountName: userData.attributes.full_name || `${userData.attributes.first_name} ${userData.attributes.last_name}`.trim(),
-          accountUrl: userData.attributes.url,
-          accountImageUrl: userData.attributes.image_url,
-        });
-
-        // Store campaigns
-        for (const campaign of campaigns) {
-          await storage.upsertCampaign({
-            patreonAccountId: patreonAccount.id,
-            patreonCampaignId: campaign.id,
-            name: campaign.attributes.display_name || campaign.attributes.creation_name,
-            summary: campaign.attributes.summary,
-            creationName: campaign.attributes.creation_name,
-            imageUrl: campaign.attributes.image_url,
-            isNsfw: campaign.attributes.is_nsfw || false,
-            isMonthly: campaign.attributes.is_monthly || true,
-            patronCount: campaign.attributes.patron_count || 0,
-            pledgeSum: campaign.attributes.pledge_sum ? campaign.attributes.pledge_sum.toString() : "0",
-            publishedAt: campaign.attributes.published_at ? new Date(campaign.attributes.published_at) : null,
+        // Store each campaign
+        for (const campaignData of campaigns) {
+          const campaign = await storage.createCampaign({
+            userId,
+            patreonCampaignId: campaignData.id,
+            title: campaignData.attributes.creation_name || 'Untitled Campaign',
+            summary: campaignData.attributes.summary,
+            imageUrl: campaignData.attributes.image_url,
+            vanityUrl: campaignData.attributes.vanity,
+            patronCount: campaignData.attributes.patron_count || 0,
+            pledgeSum: campaignData.attributes.pledge_sum ? (campaignData.attributes.pledge_sum / 100).toString() : "0",
+            accessToken,
+            refreshToken,
+            tokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
           });
+
+          // Start initial sync for the campaign
+          await syncService.startSync(userId, campaign.id, 'initial');
         }
 
-        res.redirect("/?success=patreon_connected");
+        // Clean up session
+        delete req.session.connectingUserId;
+
+        res.redirect('/?connected=true');
       } catch (error) {
-        console.error("Error storing Patreon account:", error);
-        res.redirect("/?error=storage_failed");
+        console.error('Patreon OAuth callback error:', error);
+        res.redirect('/?error=connection_failed');
       }
-    })(req, res, next);
+    }
+  );
+
+  // Disconnect Patreon account
+  app.post('/api/auth/patreon/disconnect', async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated()) {
+        return res.status(401).json({ message: "Must be logged in" });
+      }
+
+      const userId = req.user.claims.sub;
+      const { campaignId } = req.body;
+
+      if (campaignId) {
+        // Disconnect specific campaign
+        await storage.deleteCampaign(campaignId);
+      } else {
+        // Disconnect all campaigns
+        const campaigns = await storage.getUserCampaigns(userId);
+        for (const campaign of campaigns) {
+          await storage.deleteCampaign(campaign.id);
+        }
+      }
+
+      res.json({ message: "Patreon account disconnected successfully" });
+    } catch (error) {
+      console.error('Error disconnecting Patreon:', error);
+      res.status(500).json({ message: "Failed to disconnect Patreon account" });
+    }
   });
 }

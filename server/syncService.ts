@@ -1,244 +1,243 @@
-import { patreonAPI } from "./patreonApi";
 import { storage } from "./storage";
-import type { PatreonAccount } from "@shared/schema";
+import { patreonApi } from "./patreonApi";
+import type { InsertPatron, InsertPost, InsertRevenueData, PatreonCampaign } from "@shared/schema";
 
-export class SyncService {
-  async syncPatreonAccount(accountId: number, syncType: 'full' | 'incremental' = 'incremental'): Promise<void> {
-    const account = await storage.getPatreonAccount(accountId);
-    if (!account) {
-      throw new Error("Patreon account not found");
-    }
+class SyncService {
+  private activeSyncs = new Map<number, boolean>();
 
-    // Create sync log
-    const syncLog = await storage.createSyncLog({
-      patreonAccountId: accountId,
-      syncType,
-      status: "in_progress",
-    });
-
-    let recordsProcessed = 0;
-
+  async startSync(userId: string, campaignId: number, syncType: 'initial' | 'incremental' | 'full') {
     try {
-      // Sync campaigns
-      console.log(`Starting ${syncType} sync for account ${accountId}`);
-      
-      const campaignsData = await patreonAPI.getCampaigns(account);
-      const campaigns = campaignsData.data || [];
-      const included = campaignsData.included || [];
-
-      // Process campaigns
-      for (const campaignData of campaigns) {
-        const campaign = await storage.upsertCampaign({
-          patreonAccountId: accountId,
-          patreonCampaignId: campaignData.id,
-          name: campaignData.attributes.display_name || campaignData.attributes.creation_name,
-          summary: campaignData.attributes.summary,
-          creationName: campaignData.attributes.creation_name,
-          imageUrl: campaignData.attributes.image_url,
-          isNsfw: campaignData.attributes.is_nsfw || false,
-          isMonthly: campaignData.attributes.is_monthly || true,
-          patronCount: campaignData.attributes.patron_count || 0,
-          pledgeSum: campaignData.attributes.pledge_sum ? campaignData.attributes.pledge_sum.toString() : "0",
-          publishedAt: campaignData.attributes.published_at ? new Date(campaignData.attributes.published_at) : null,
-        });
-
-        recordsProcessed++;
-
-        // Process tiers for this campaign
-        const campaignTiers = included.filter((item: any) => 
-          item.type === "tier" && 
-          campaignData.relationships?.tiers?.data?.some((tier: any) => tier.id === item.id)
-        );
-
-        for (const tierData of campaignTiers) {
-          await storage.upsertCampaignTier({
-            campaignId: campaign.id,
-            patreonTierId: tierData.id,
-            title: tierData.attributes.title,
-            description: tierData.attributes.description,
-            amount: (tierData.attributes.amount_cents / 100).toString(),
-            currency: "USD",
-            patronCount: tierData.attributes.patron_count || 0,
-            isEnabled: tierData.attributes.published || true,
-          });
-
-          recordsProcessed++;
-        }
-
-        // Sync campaign members (patrons)
-        await this.syncCampaignMembers(account, campaign.id, campaignData.id);
-        
-        // Sync campaign posts
-        await this.syncCampaignPosts(account, campaign.id, campaignData.id);
-
-        // Create revenue snapshot
-        await storage.createRevenueSnapshot({
-          campaignId: campaign.id,
-          snapshotDate: new Date(),
-          totalRevenue: campaign.pledgeSum || "0",
-          patronCount: campaign.patronCount || 0,
-          newPatrons: 0, // TODO: Calculate based on new pledges
-          lostPatrons: 0, // TODO: Calculate based on cancelled pledges
-        });
-
-        recordsProcessed++;
+      // Check if sync is already running for this campaign
+      if (this.activeSyncs.get(campaignId)) {
+        throw new Error('Sync already in progress for this campaign');
       }
 
-      // Mark sync as completed
-      await storage.updateSyncLog(syncLog.id, {
-        status: "completed",
-        completedAt: new Date(),
-        recordsProcessed,
+      // Get campaign details
+      const campaign = await storage.getCampaignById(campaignId);
+      if (!campaign || campaign.userId !== userId) {
+        throw new Error('Campaign not found or access denied');
+      }
+
+      // Create sync status record
+      const syncStatus = await storage.createSyncStatus({
+        campaignId,
+        syncType,
+        status: 'pending',
+        progress: 0,
+        totalItems: 0,
+        processedItems: 0,
       });
 
-      console.log(`Sync completed for account ${accountId}. Processed ${recordsProcessed} records.`);
+      // Start async sync process
+      this.performSync(campaign, syncStatus.id, syncType).catch(error => {
+        console.error(`Sync failed for campaign ${campaignId}:`, error);
+        storage.updateSyncStatus(syncStatus.id, {
+          status: 'failed',
+          errorMessage: error.message,
+          completedAt: new Date(),
+        });
+      });
+
+      return syncStatus.id;
     } catch (error) {
-      console.error(`Sync failed for account ${accountId}:`, error);
-      
-      await storage.updateSyncLog(syncLog.id, {
-        status: "failed",
-        completedAt: new Date(),
-        errorMessage: error instanceof Error ? error.message : "Unknown error",
-        recordsProcessed,
-      });
-
+      console.error('Error starting sync:', error);
       throw error;
     }
   }
 
-  private async syncCampaignMembers(account: PatreonAccount, campaignId: number, patreonCampaignId: string): Promise<void> {
+  private async performSync(campaign: PatreonCampaign, syncId: number, syncType: string) {
+    this.activeSyncs.set(campaign.id, true);
+
+    try {
+      await storage.updateSyncStatus(syncId, {
+        status: 'in_progress',
+        startedAt: new Date(),
+      });
+
+      // Check if token needs refresh
+      const now = new Date();
+      let accessToken = campaign.accessToken;
+      
+      if (campaign.tokenExpiresAt && campaign.tokenExpiresAt < now && campaign.refreshToken) {
+        try {
+          const refreshed = await patreonApi.refreshAccessToken(campaign.refreshToken);
+          accessToken = refreshed.accessToken;
+          
+          // Update campaign with new tokens
+          await storage.updateCampaign(campaign.id, {
+            accessToken: refreshed.accessToken,
+            refreshToken: refreshed.refreshToken,
+            tokenExpiresAt: refreshed.expiresAt,
+          });
+        } catch (error) {
+          console.error('Failed to refresh token:', error);
+          throw new Error('Token refresh failed');
+        }
+      }
+
+      // Sync members/patrons
+      await this.syncPatrons(campaign, accessToken, syncId);
+      
+      // Sync posts
+      await this.syncPosts(campaign, accessToken, syncId);
+      
+      // Update campaign stats
+      await this.updateCampaignStats(campaign.id);
+      
+      // Create revenue data snapshot
+      await this.createRevenueSnapshot(campaign.id);
+
+      // Mark sync as completed
+      await storage.updateSyncStatus(syncId, {
+        status: 'completed',
+        progress: 100,
+        completedAt: new Date(),
+      });
+
+      // Update campaign last sync time
+      await storage.updateCampaign(campaign.id, {
+        lastSyncAt: new Date(),
+      });
+
+    } finally {
+      this.activeSyncs.delete(campaign.id);
+    }
+  }
+
+  private async syncPatrons(campaign: PatreonCampaign, accessToken: string, syncId: number) {
     let cursor: string | undefined;
-    let hasMore = true;
+    let totalPatrons = 0;
+    let processedPatrons = 0;
 
-    while (hasMore) {
-      try {
-        const membersData = await patreonAPI.getCampaignMembers(account, patreonCampaignId, cursor);
-        const members = membersData.data || [];
-        const included = membersData.included || [];
+    do {
+      const response = await patreonApi.getCampaignMembers(
+        accessToken,
+        campaign.patreonCampaignId,
+        cursor
+      );
 
-        // Process members
-        for (const memberData of members) {
-          // Find the associated user data
-          const userData = included.find((item: any) => 
-            item.type === "user" && 
-            memberData.relationships?.user?.data?.id === item.id
-          );
+      const members = response.data;
+      const users = response.included?.filter((item: any) => item.type === 'user') || [];
+      
+      totalPatrons += members.length;
 
-          if (!userData) continue;
+      for (const member of members) {
+        const user = users.find((u: any) => u.id === member.relationships?.user?.data?.id);
+        
+        const patronData: InsertPatron = {
+          campaignId: campaign.id,
+          patreonUserId: member.relationships?.user?.data?.id || member.id,
+          email: user?.attributes?.email || null,
+          fullName: user?.attributes?.full_name || member.attributes?.full_name || null,
+          firstName: user?.attributes?.first_name || null,
+          lastName: user?.attributes?.last_name || null,
+          imageUrl: user?.attributes?.image_url || null,
+          thumbUrl: user?.attributes?.thumb_url || null,
+          url: user?.attributes?.url || null,
+          isFollower: user?.attributes?.is_follower || false,
+          pledgeRelationshipStart: member.attributes?.pledge_relationship_start ? 
+            new Date(member.attributes.pledge_relationship_start) : null,
+          lifetimeSupportCents: member.attributes?.lifetime_support_cents || 0,
+          currentlyEntitledAmountCents: member.attributes?.currently_entitled_amount_cents || 0,
+          patronStatus: member.attributes?.patron_status || null,
+          lastChargeDate: member.attributes?.last_charge_date ? 
+            new Date(member.attributes.last_charge_date) : null,
+          lastChargeStatus: member.attributes?.last_charge_status || null,
+          willPayAmountCents: member.attributes?.will_pay_amount_cents || 0,
+        };
 
-          // Upsert patron
-          const patron = await storage.upsertPatron({
-            patreonAccountId: account.id,
-            patreonUserId: userData.id,
-            email: userData.attributes.email,
-            firstName: userData.attributes.first_name,
-            lastName: userData.attributes.last_name,
-            fullName: userData.attributes.full_name,
-            imageUrl: userData.attributes.image_url,
-            isEmailVerified: !!userData.attributes.email,
-          });
+        await storage.upsertPatron(patronData);
+        processedPatrons++;
 
-          // Find tier data
-          const tierIds = memberData.relationships?.currently_entitled_tiers?.data?.map((tier: any) => tier.id) || [];
-          const tierData = included.find((item: any) => 
-            item.type === "tier" && tierIds.includes(item.id)
-          );
-
-          // Upsert pledge
-          await storage.upsertPledge({
-            campaignId,
-            patronId: patron.id,
-            tierId: tierData ? undefined : undefined, // TODO: Map tier properly
-            patreonPledgeId: `${memberData.id}_pledge`,
-            amount: memberData.attributes.currently_entitled_amount_cents 
-              ? (memberData.attributes.currently_entitled_amount_cents / 100).toString() 
-              : "0",
-            currency: "USD",
-            status: memberData.attributes.patron_status || "active_patron",
-            totalHistoricalAmount: memberData.attributes.campaign_lifetime_support_cents 
-              ? (memberData.attributes.campaign_lifetime_support_cents / 100).toString() 
-              : "0",
-            pledgeStartDate: memberData.attributes.pledge_relationship_start 
-              ? new Date(memberData.attributes.pledge_relationship_start) 
-              : null,
-          });
-        }
-
-        // Check for pagination
-        cursor = membersData.meta?.pagination?.cursors?.next;
-        hasMore = !!cursor;
-
-        // Rate limiting - pause between requests
-        if (hasMore) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      } catch (error) {
-        console.error("Error syncing campaign members:", error);
-        hasMore = false;
+        // Update progress
+        const progress = Math.min(Math.floor((processedPatrons / Math.max(totalPatrons, 1)) * 50), 50);
+        await storage.updateSyncStatus(syncId, {
+          progress,
+          totalItems: totalPatrons,
+          processedItems: processedPatrons,
+        });
       }
-    }
+
+      cursor = response.links?.next ? 
+        new URL(response.links.next).searchParams.get('page[cursor]') || undefined : 
+        undefined;
+
+    } while (cursor);
   }
 
-  private async syncCampaignPosts(account: PatreonAccount, campaignId: number, patreonCampaignId: string): Promise<void> {
+  private async syncPosts(campaign: PatreonCampaign, accessToken: string, syncId: number) {
     let cursor: string | undefined;
-    let hasMore = true;
-    let processedCount = 0;
-    const maxPosts = 50; // Limit to recent posts to avoid long sync times
+    let processedPosts = 0;
 
-    while (hasMore && processedCount < maxPosts) {
-      try {
-        const postsData = await patreonAPI.getCampaignPosts(account, patreonCampaignId, cursor);
-        const posts = postsData.data || [];
+    do {
+      const response = await patreonApi.getCampaignPosts(
+        accessToken,
+        campaign.patreonCampaignId,
+        cursor
+      );
 
-        // Process posts
-        for (const postData of posts) {
-          await storage.upsertPost({
-            campaignId,
-            patreonPostId: postData.id,
-            title: postData.attributes.title,
-            content: postData.attributes.content,
-            isPublic: !postData.attributes.is_paid,
-            isPaid: postData.attributes.is_paid || false,
-            likeCount: postData.attributes.like_count || 0,
-            commentCount: 0, // Not available in API
-            publishedAt: postData.attributes.published_at 
-              ? new Date(postData.attributes.published_at) 
-              : null,
-          });
+      const posts = response.data;
 
-          processedCount++;
-        }
+      for (const post of posts) {
+        const postData: InsertPost = {
+          campaignId: campaign.id,
+          patreonPostId: post.id,
+          title: post.attributes?.title || null,
+          content: post.attributes?.content || null,
+          url: post.attributes?.url || null,
+          embedData: post.attributes?.embed_data || null,
+          embedUrl: post.attributes?.embed_url || null,
+          imageUrl: post.attributes?.image?.large_url || post.attributes?.image?.url || null,
+          isPublic: post.attributes?.is_public || false,
+          isPaid: post.attributes?.is_paid || false,
+          publishedAt: post.attributes?.published_at ? 
+            new Date(post.attributes.published_at) : null,
+          editedAt: post.attributes?.edited_at ? 
+            new Date(post.attributes.edited_at) : null,
+          likesCount: post.attributes?.like_count || 0,
+          commentsCount: post.attributes?.comment_count || 0,
+        };
 
-        // Check for pagination
-        cursor = postsData.meta?.pagination?.cursors?.next;
-        hasMore = !!cursor;
-
-        // Rate limiting - pause between requests
-        if (hasMore) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      } catch (error) {
-        console.error("Error syncing campaign posts:", error);
-        hasMore = false;
+        await storage.upsertPost(postData);
+        processedPosts++;
       }
-    }
+
+      // Update progress (posts are the second half of sync)
+      const progress = Math.min(50 + Math.floor((processedPosts / Math.max(posts.length, 1)) * 50), 100);
+      await storage.updateSyncStatus(syncId, {
+        progress,
+      });
+
+      cursor = response.links?.next ? 
+        new URL(response.links.next).searchParams.get('page[cursor]') || undefined : 
+        undefined;
+
+    } while (cursor);
   }
 
-  async syncAllUserAccounts(userId: string): Promise<void> {
-    const accounts = await storage.getPatreonAccountsByUserId(userId);
-    
-    for (const account of accounts) {
-      try {
-        await this.syncPatreonAccount(account.id, 'incremental');
-      } catch (error) {
-        console.error(`Failed to sync account ${account.id}:`, error);
-        // Continue with other accounts even if one fails
-      }
-    }
+  private async updateCampaignStats(campaignId: number) {
+    const stats = await storage.getCampaignStats(campaignId);
+    await storage.updateCampaign(campaignId, {
+      patronCount: stats.patronCount,
+      pledgeSum: stats.totalPledgeSum.toString(),
+    });
   }
 
-  async performFullSync(accountId: number): Promise<void> {
-    await this.syncPatreonAccount(accountId, 'full');
+  private async createRevenueSnapshot(campaignId: number) {
+    const stats = await storage.getCampaignStats(campaignId);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const revenueData: InsertRevenueData = {
+      campaignId,
+      date: today,
+      patronCount: stats.patronCount,
+      pledgeSum: stats.totalPledgeSum.toString(),
+      newPatrons: 0, // This would require tracking changes
+      lostPatrons: 0, // This would require tracking changes
+    };
+
+    await storage.upsertRevenueData(revenueData);
   }
 }
 

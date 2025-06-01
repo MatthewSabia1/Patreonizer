@@ -1,55 +1,54 @@
 # Patreonizer
 
-A comprehensive analytics platform for Patreon creators to manage multiple campaigns, track revenue growth, and understand their audience better.
+A comprehensive Patreon creator analytics platform that helps creators who own and manage multiple Patreon pages view, track, and sync revenue and patron analytics across all their campaigns.
 
 ## Features
 
-### Core Functionality
-- **Multi-Account Management**: Connect and manage multiple Patreon creator accounts from one dashboard
-- **Real-time Data Sync**: Automatic synchronization with Patreon API 2.0 for up-to-date analytics
-- **Comprehensive Analytics**: Track revenue, patron growth, engagement metrics, and campaign performance
-- **Patron Management**: Detailed patron information with search, filtering, and export capabilities
-- **Revenue Tracking**: Monitor monthly revenue trends with historical data and growth indicators
-
-### Technical Features
-- **Secure Authentication**: Replit Auth 2.0 integration with automatic session management
-- **OAuth Integration**: Secure Patreon OAuth 2.0 flow for account connection
-- **Database Storage**: PostgreSQL with Drizzle ORM for efficient data management
-- **Real-time Updates**: Background sync processes with progress tracking
-- **Data Export**: CSV export functionality for external analysis
-- **Responsive Design**: Mobile-friendly interface with dark mode support
+- **Multi-Campaign Management**: Connect and manage multiple Patreon campaigns from a single dashboard
+- **Real-time Data Sync**: Automatic synchronization with Patreon API 2.0 to keep data up-to-date
+- **Revenue Analytics**: Track monthly revenue, patron growth, and performance trends
+- **Patron Management**: Detailed patron information with export capabilities
+- **Dashboard Overview**: Beautiful visualizations of key metrics and performance indicators
+- **Secure Authentication**: OAuth 2.0 integration with both Replit Auth and Patreon
+- **Data Export**: CSV export functionality for patron and revenue data
+- **Dark Mode Interface**: Orange-themed dark mode design with smooth animations
 
 ## Tech Stack
 
 ### Frontend
-- **React 18** with TypeScript
-- **Wouter** for routing
-- **TanStack Query** for data fetching and caching
-- **Shadcn/ui** components with Orange theme
+- **React** with TypeScript
+- **Shadcn UI** components with Orange theme
 - **Tailwind CSS** for styling
 - **Framer Motion** for animations
+- **React Query** for data fetching
+- **Wouter** for routing
 - **Recharts** for data visualization
 
 ### Backend
 - **Express.js** with TypeScript
-- **Drizzle ORM** with PostgreSQL
+- **PostgreSQL** database with Drizzle ORM
 - **Passport.js** for authentication
-- **OpenID Connect** for Replit Auth
 - **Patreon API 2.0** integration
-- **Background sync services**
+- **Node.js** with modern ES modules
 
 ## Getting Started
 
 ### Prerequisites
 - Node.js 18+ 
 - PostgreSQL database
-- Replit Auth configuration
-- Patreon OAuth app credentials
+- Patreon OAuth application credentials
+- Replit environment (recommended)
 
 ### Environment Variables
-```env
-DATABASE_URL=postgresql://...
+```bash
+# Database
+DATABASE_URL=postgresql://username:password@host:port/database
+
+# Replit Auth (automatically provided in Replit)
+REPL_ID=your-repl-id
+REPLIT_DOMAINS=your-domain.replit.dev
 SESSION_SECRET=your-session-secret
-REPLIT_DOMAINS=your-domain.com
+
+# Patreon OAuth
 PATREON_CLIENT_ID=your-patreon-client-id
 PATREON_CLIENT_SECRET=your-patreon-client-secret
