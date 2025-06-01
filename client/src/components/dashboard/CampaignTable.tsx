@@ -21,11 +21,12 @@ interface CampaignTableProps {
 }
 
 export function CampaignTable({ campaigns = [], isLoading }: CampaignTableProps) {
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: string | number) => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-    }).format(amount);
+    }).format(numAmount);
   };
 
   const getStatusColor = (isActive: boolean) => {
@@ -98,7 +99,7 @@ export function CampaignTable({ campaigns = [], isLoading }: CampaignTableProps)
                       <td className="py-4">
                         <div className="flex items-center space-x-3">
                           <Avatar className="w-10 h-10">
-                            <AvatarImage src={campaign.imageUrl} alt={campaign.title} />
+                            <AvatarImage src={campaign.imageUrl ?? undefined} alt={campaign.title} />
                             <AvatarFallback className="bg-primary/10 text-primary">
                               {campaign.title[0]?.toUpperCase()}
                             </AvatarFallback>

@@ -63,7 +63,7 @@ export default function Dashboard() {
     retry: false,
   });
 
-  const { data: activity = [], isLoading: activityLoading } = useQuery<ActivityItem[]>({
+  const { data: activity = [], isLoading: activityLoading } = useQuery<any[]>({
     queryKey: ["/api/activity/recent"],
     retry: false,
   });
@@ -271,7 +271,7 @@ export default function Dashboard() {
           {/* Campaign Performance & Recent Activity */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <CampaignTable campaigns={campaigns} isLoading={campaignsLoading} />
-            <RecentActivity activities={activity} isLoading={activityLoading} />
+            <RecentActivity activities={[]} isLoading={activityLoading} />
           </div>
 
           {/* Quick Actions */}
