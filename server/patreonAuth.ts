@@ -8,11 +8,20 @@ import { syncService } from "./syncService";
 const PATREON_CLIENT_ID = process.env.PATREON_CLIENT_ID || process.env.VITE_PATREON_CLIENT_ID || "default_client_id";
 const PATREON_CLIENT_SECRET = process.env.PATREON_CLIENT_SECRET || process.env.VITE_PATREON_CLIENT_SECRET || "default_secret";
 
+// Debug logging for credentials
+console.log('Patreon OAuth Config:', {
+  clientId: PATREON_CLIENT_ID ? `${PATREON_CLIENT_ID.substring(0, 10)}...` : 'NOT SET',
+  clientSecret: PATREON_CLIENT_SECRET ? `${PATREON_CLIENT_SECRET.substring(0, 10)}...` : 'NOT SET',
+  hasCredentials: !!(PATREON_CLIENT_ID && PATREON_CLIENT_SECRET && PATREON_CLIENT_ID !== 'default_client_id')
+});
+
 export function setupPatreonAuth(app: Express) {
   // Get the base URL from REPLIT_DOMAINS or fallback
   const baseUrl = process.env.REPLIT_DOMAINS ? 
     `https://${process.env.REPLIT_DOMAINS.split(',')[0]}` : 
     'http://localhost:5000';
+
+  console.log('Patreon OAuth Callback URL:', `${baseUrl}/api/auth/patreon/callback`);
 
   passport.use('patreon', new OAuth2Strategy({
     authorizationURL: 'https://www.patreon.com/oauth2/authorize',
@@ -20,7 +29,7 @@ export function setupPatreonAuth(app: Express) {
     clientID: PATREON_CLIENT_ID,
     clientSecret: PATREON_CLIENT_SECRET,
     callbackURL: `${baseUrl}/api/auth/patreon/callback`,
-    scope: ['identity', 'identity[email]', 'campaigns', 'campaigns.members', 'campaigns.posts', 'my-campaign', 'pledges-to-me'].join(' '),
+    scope: 'identity identity[email] campaigns campaigns.members campaigns.posts my-campaign pledges-to-me',
     customHeaders: {
       'User-Agent': 'Patreonizer/1.0',
     },
