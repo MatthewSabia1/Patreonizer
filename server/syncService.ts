@@ -275,7 +275,7 @@ class SyncService {
     const stats = await storage.getCampaignStats(campaignId);
     await storage.updateCampaign(campaignId, {
       patronCount: stats.patronCount,
-      pledgeSum: stats.totalPledgeSum.toString(),
+      pledgeSum: (stats.totalPledgeSum / 100).toString(), // Convert cents to dollars
     });
   }
 
@@ -399,12 +399,11 @@ class SyncService {
           title: benefit.attributes?.title || 'Untitled Benefit',
           description: benefit.attributes?.description || null,
           benefitType: benefit.attributes?.benefit_type || null,
-          isDelivered: benefit.attributes?.is_delivered ?? false,
+          isDelivered: false, // Default value since field may not be available
           isPublished: benefit.attributes?.is_published ?? true,
-          nextDeliverableDue: benefit.attributes?.next_deliverable_due ? 
-            new Date(benefit.attributes.next_deliverable_due) : null,
-          deliveredDeliverables: benefit.attributes?.delivered_deliverables || 0,
-          notDeliveredDeliverables: benefit.attributes?.not_delivered_deliverables || 0,
+          nextDeliverableDue: null, // Field may not be available in current API
+          deliveredDeliverables: 0, // Field may not be available in current API
+          notDeliveredDeliverables: 0, // Field may not be available in current API
           patreonCreatedAt: benefit.attributes?.created_at ? new Date(benefit.attributes.created_at) : null,
         };
 

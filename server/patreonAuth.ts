@@ -107,8 +107,7 @@ export function setupPatreonAuth(app: Express) {
             imageUrl: campaignData.attributes.image_url || null,
             vanityUrl: campaignData.attributes.vanity || null,
             patronCount: campaignData.attributes.patron_count || 0,
-            pledgeSum: campaignData.attributes.pledge_sum ? 
-              (campaignData.attributes.pledge_sum / 100).toString() : "0",
+            pledgeSum: "0", // Will be updated during sync
             accessToken,
             refreshToken,
             tokenExpiresAt: expiresAt,

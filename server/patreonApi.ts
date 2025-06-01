@@ -94,12 +94,12 @@ class PatreonAPI {
 
   async getUserCampaigns(accessToken: string) {
     const response = await this.makeRequest('/campaigns', accessToken, {
-      'fields[campaign]': 'creation_name,summary,image_url,vanity,patron_count,pledge_sum,published_at,is_monthly,is_charged_immediately,created_at,currency,main_video_embed,main_video_url,one_liner,pay_per_name,pledge_url,thanks_embed,thanks_msg,thanks_video_url,has_rss,has_sent_rss_notify,rss_feed_title,rss_artwork_url,is_nsfw',
+      'fields[campaign]': 'creation_name,summary,image_url,vanity,patron_count,published_at,is_monthly,is_charged_immediately,created_at,main_video_embed,main_video_url,one_liner,pay_per_name,pledge_url,thanks_embed,thanks_msg,thanks_video_url,has_rss,has_sent_rss_notify,rss_feed_title,rss_artwork_url,is_nsfw',
       'include': 'creator,goals,tiers,benefits',
       'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,created,is_creator',
       'fields[goal]': 'amount_cents,title,description,created_at,reached_at,completed_percentage',
       'fields[tier]': 'title,amount_cents,description,patron_count,remaining,requires_shipping,created_at,edited_at,published_at,unpublished_at,discord_role_ids,image_url',
-      'fields[benefit]': 'title,description,benefit_type,is_delivered,is_published,next_deliverable_due,delivered_deliverables,not_delivered_deliverables,created_at',
+      'fields[benefit]': 'title,description,benefit_type,is_published,created_at',
     });
     return {
       campaigns: response.data || [],
@@ -145,7 +145,7 @@ class PatreonAPI {
 
   async getCampaignBenefits(accessToken: string, campaignId: string) {
     const response = await this.makeRequest(`/campaigns/${campaignId}/benefits`, accessToken, {
-      'fields[benefit]': 'title,description,benefit_type,is_delivered,is_published,next_deliverable_due,delivered_deliverables,not_delivered_deliverables,created_at',
+      'fields[benefit]': 'title,description,benefit_type,is_published,created_at',
       'sort': 'created_at',
     });
     return {
