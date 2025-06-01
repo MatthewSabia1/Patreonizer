@@ -29,7 +29,7 @@ export function setupPatreonAuth(app: Express) {
     clientID: PATREON_CLIENT_ID,
     clientSecret: PATREON_CLIENT_SECRET,
     callbackURL: `${baseUrl}/api/auth/patreon/callback`,
-    scope: 'identity',
+    scope: 'identity[email] campaigns campaigns.members campaigns.posts w:campaigns.webhook',
     customHeaders: {
       'User-Agent': 'Patreonizer/1.0',
     },
@@ -60,7 +60,7 @@ export function setupPatreonAuth(app: Express) {
     req.session.connectingUserId = req.user.claims.sub;
     
     passport.authenticate('patreon', {
-      scope: 'identity campaigns campaigns.members pledges-to-me my-campaign'
+      scope: 'identity[email] campaigns campaigns.members campaigns.posts w:campaigns.webhook'
     })(req, res, next);
   });
 
@@ -78,10 +78,14 @@ export function setupPatreonAuth(app: Express) {
         // Verify we have the required scopes
         const requiredScopes = ['identity', 'campaigns', 'campaigns.members'];
         const grantedScopes = scope ? scope.split(' ') : [];
-        const missingScopes = requiredScopes.filter(s => !grantedScopes.includes(s));
         
-        if (missingScopes.length > 0) {
-          console.error('Missing required scopes:', missingScopes);
+        // Check for identity scope (can be identity or identity[email])
+        const hasIdentity = grantedScopes.some(s => s.startsWith('identity'));
+        const hasCampaigns = grantedScopes.includes('campaigns');
+        const hasMembers = grantedScopes.includes('campaigns.members');
+        
+        if (!hasIdentity || !hasCampaigns || !hasMembers) {
+          console.error('Missing required scopes. Granted:', grantedScopes);
           return res.redirect('/?error=insufficient_permissions');
         }
 

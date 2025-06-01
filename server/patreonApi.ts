@@ -20,7 +20,7 @@ interface PatreonApiResponse<T = any> {
 }
 
 class PatreonAPI {
-  private async makeRequest(endpoint: string, accessToken: string, params: any = {}): Promise<PatreonApiResponse> {
+  private async makeRequest(endpoint: string, accessToken: string, params: any = {}, retryWithRefresh: boolean = true): Promise<PatreonApiResponse> {
     try {
       const response = await axios.get(`${PATREON_API_BASE}${endpoint}`, {
         headers: {
@@ -29,6 +29,7 @@ class PatreonAPI {
           'Content-Type': 'application/vnd.api+json',
         },
         params,
+        timeout: 30000, // 30 second timeout
       });
       return response.data;
     } catch (error: any) {
@@ -39,12 +40,43 @@ class PatreonAPI {
       } else if (error.response?.status === 403) {
         throw new Error('Forbidden: Insufficient permissions');
       } else if (error.response?.status === 429) {
-        throw new Error('Rate limited: Too many requests');
+        // Handle rate limiting with exponential backoff
+        const retryAfter = error.response?.headers['retry-after'] || '60';
+        throw new Error(`Rate limited: Too many requests. Retry after ${retryAfter} seconds`);
       } else if (error.response?.status >= 500) {
         throw new Error('Patreon server error: Please try again later');
+      } else if (error.code === 'ECONNABORTED') {
+        throw new Error('Request timeout: Patreon API did not respond in time');
       }
       
       throw new Error(`Patreon API error: ${error.response?.status || 'Network error'}`);
+    }
+  }
+
+  // Enhanced method with automatic token refresh capability
+  async makeRequestWithTokenRefresh(
+    endpoint: string, 
+    accessToken: string, 
+    refreshToken: string | null, 
+    params: any = {},
+    onTokenRefresh?: (newTokens: { accessToken: string; refreshToken: string; expiresAt: Date }) => Promise<void>
+  ): Promise<PatreonApiResponse> {
+    try {
+      return await this.makeRequest(endpoint, accessToken, params, false);
+    } catch (error: any) {
+      // If token expired and we have a refresh token, try to refresh
+      if (error.message?.includes('Unauthorized') && refreshToken && onTokenRefresh) {
+        try {
+          const newTokens = await this.refreshAccessToken(refreshToken);
+          await onTokenRefresh(newTokens);
+          // Retry with new token
+          return await this.makeRequest(endpoint, newTokens.accessToken, params, false);
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+          throw new Error('Token expired and refresh failed - user needs to reconnect');
+        }
+      }
+      throw error;
     }
   }
 
@@ -312,27 +344,43 @@ class PatreonAPI {
 
   async refreshAccessToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string; expiresAt: Date }> {
     try {
-      const response = await axios.post('https://www.patreon.com/api/oauth2/token', {
+      const params = new URLSearchParams({
         grant_type: 'refresh_token',
         refresh_token: refreshToken,
-        client_id: process.env.PATREON_CLIENT_ID,
-        client_secret: process.env.PATREON_CLIENT_SECRET,
-      }, {
+        client_id: process.env.PATREON_CLIENT_ID || '',
+        client_secret: process.env.PATREON_CLIENT_SECRET || '',
+      });
+
+      const response = await axios.post('https://www.patreon.com/api/oauth2/token', params, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'Patreonizer/1.0',
         },
       });
 
-      const { access_token, refresh_token, expires_in } = response.data;
-      const expiresAt = new Date(Date.now() + (expires_in * 1000));
+      const { access_token, refresh_token, expires_in, scope } = response.data;
+      const expiresAt = new Date(Date.now() + ((expires_in || 3600) * 1000));
+
+      if (!access_token) {
+        throw new Error('No access token received from Patreon');
+      }
 
       return {
         accessToken: access_token,
-        refreshToken: refresh_token,
+        refreshToken: refresh_token || refreshToken, // Keep old refresh token if new one not provided
         expiresAt,
       };
     } catch (error: any) {
       console.error('Error refreshing Patreon token:', error.response?.data || error.message);
+      
+      if (error.response?.status === 400) {
+        throw new Error('Invalid refresh token - user needs to reconnect');
+      } else if (error.response?.status === 401) {
+        throw new Error('Unauthorized refresh token - user needs to reconnect');
+      } else if (error.response?.status === 403) {
+        throw new Error('Forbidden - insufficient permissions for token refresh');
+      }
+      
       throw new Error('Failed to refresh Patreon access token');
     }
   }
@@ -452,15 +500,106 @@ class PatreonAPI {
     };
   }
 
+  // Get campaign earnings visibility settings
+  async getCampaignEarnings(accessToken: string, campaignId: string) {
+    const response = await this.makeRequest(`/campaigns/${campaignId}`, accessToken, {
+      'fields[campaign]': 'earnings_visibility,pledge_sum,patron_count,currency',
+    });
+    return {
+      earnings: response.data,
+    };
+  }
+
+  // Get user's social connections
+  async getUserSocialConnections(accessToken: string, userId: string) {
+    const response = await this.makeRequest(`/users/${userId}`, accessToken, {
+      'fields[user]': 'social_connections,url,vanity,about',
+    });
+    return {
+      user: response.data,
+    };
+  }
+
+  // Get campaign's creator profile
+  async getCampaignCreator(accessToken: string, campaignId: string) {
+    const response = await this.makeRequest(`/campaigns/${campaignId}`, accessToken, {
+      'include': 'creator',
+      'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,created,is_creator,vanity,about,can_see_nsfw,is_email_verified,social_connections',
+      'fields[campaign]': 'creation_name',
+    });
+    return {
+      campaign: response.data,
+      included: response.included || [],
+    };
+  }
+
+  // Get member's pledge history (if available)
+  async getMemberPledgeHistory(accessToken: string, memberId: string) {
+    const response = await this.makeRequest(`/members/${memberId}`, accessToken, {
+      'fields[member]': 'pledge_relationship_start,lifetime_support_cents,campaign_lifetime_support_cents,last_charge_date,last_charge_status,patron_status',
+      'include': 'pledge_history',
+    });
+    return {
+      member: response.data,
+      included: response.included || [],
+    };
+  }
+
+  // Search members by email or name (if permitted by scopes)
+  async searchMembers(accessToken: string, campaignId: string, query: string) {
+    const response = await this.makeRequest(`/campaigns/${campaignId}/members`, accessToken, {
+      'fields[member]': 'full_name,email,patron_status,pledge_relationship_start,lifetime_support_cents,currently_entitled_amount_cents',
+      'fields[user]': 'email,first_name,last_name,full_name',
+      'include': 'user',
+      'filter[email]': query.includes('@') ? query : undefined,
+      'page[count]': '50',
+    });
+    return {
+      members: response.data || [],
+      included: response.included || [],
+    };
+  }
+
+  // Get campaign's media and content
+  async getCampaignMedia(accessToken: string, campaignId: string) {
+    const response = await this.makeRequest(`/campaigns/${campaignId}`, accessToken, {
+      'fields[campaign]': 'image_url,main_video_embed,main_video_url,thanks_embed,thanks_video_url,rss_artwork_url',
+    });
+    return {
+      media: response.data,
+    };
+  }
+
+  // Validate API connection and permissions
+  async validateConnection(accessToken: string): Promise<{ isValid: boolean; scopes: string[]; user: any }> {
+    try {
+      const identity = await this.getCurrentUser(accessToken);
+      const campaigns = await this.getUserCampaigns(accessToken);
+      
+      return {
+        isValid: true,
+        scopes: [], // Patreon doesn't return explicit scope info in identity endpoint
+        user: identity.user,
+      };
+    } catch (error) {
+      return {
+        isValid: false,
+        scopes: [],
+        user: null,
+      };
+    }
+  }
+
   // Helper method to validate webhook signatures
   validateWebhookSignature(payload: string, signature: string, secret: string): boolean {
     const crypto = require('crypto');
     const expectedSignature = crypto
-      .createHmac('md5', secret)
-      .update(payload)
+      .createHmac('sha256', secret)
+      .update(payload, 'utf8')
       .digest('hex');
     
-    return expectedSignature === signature;
+    // Patreon sends signature as hex string
+    return signature === expectedSignature;
   }
 }
 
