@@ -292,30 +292,25 @@ export default function Dashboard() {
             />
           </motion.section>
 
+          {/* Quick Actions */}
+          <QuickActions
+            onConnectPage={() => setShowConnectModal(true)}
+            onExportData={handleExportData}
+            onViewPatrons={handleViewPatrons}
+            onSyncAll={handleSyncAll}
+          />
+
           {/* Campaign Performance & Recent Activity */}
           <motion.section
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+            transition={{ delay: 0.4, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="pb-8"
           >
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <CampaignTable campaigns={campaigns} isLoading={campaignsLoading} />
               <RecentActivity activities={[]} isLoading={activityLoading} />
             </div>
-          </motion.section>
-
-          {/* Quick Actions */}
-          <motion.section
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-          >
-            <QuickActions
-              onConnectPage={() => setShowConnectModal(true)}
-              onExportData={handleExportData}
-              onViewPatrons={handleViewPatrons}
-              onSyncAll={handleSyncAll}
-            />
           </motion.section>
         </div>
       </main>
