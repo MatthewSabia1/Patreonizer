@@ -169,7 +169,7 @@ export class DatabaseStorage implements IStorage {
       whereConditions = and(
         whereConditions,
         eq(patrons.campaignId, parseInt(campaignId))
-      );
+      )!;
     }
 
     if (search) {
@@ -179,7 +179,7 @@ export class DatabaseStorage implements IStorage {
           like(patrons.fullName, `%${search}%`),
           like(patrons.email, `%${search}%`)
         )
-      );
+      )!;
     }
 
     const [patronsList, [{ total }]] = await Promise.all([
@@ -244,8 +244,8 @@ export class DatabaseStorage implements IStorage {
       patron.fullName || "",
       patron.email || "",
       patron.patronStatus || "",
-      `$${(patron.currentlyEntitledAmountCents / 100).toFixed(2)}`,
-      `$${(patron.lifetimeSupportCents / 100).toFixed(2)}`,
+      `$${((patron.currentlyEntitledAmountCents || 0) / 100).toFixed(2)}`,
+      `$${((patron.lifetimeSupportCents || 0) / 100).toFixed(2)}`,
       patron.pledgeRelationshipStart ? format(patron.pledgeRelationshipStart, "yyyy-MM-dd") : "",
       patron.lastChargeDate ? format(patron.lastChargeDate, "yyyy-MM-dd") : "",
       patron.lastChargeStatus || ""
@@ -285,7 +285,7 @@ export class DatabaseStorage implements IStorage {
       whereConditions = and(
         whereConditions,
         eq(posts.campaignId, parseInt(campaignId))
-      );
+      )!;
     }
 
     const [postsList, [{ total }]] = await Promise.all([
@@ -610,7 +610,7 @@ export class DatabaseStorage implements IStorage {
         id: `patron-${patron.id}`,
         type: 'new_patron',
         title: `${patron.fullName || 'Unknown'} became a patron`,
-        description: `$${(patron.currentlyEntitledAmountCents / 100).toFixed(2)}/month`,
+        description: `$${((patron.currentlyEntitledAmountCents || 0) / 100).toFixed(2)}/month`,
         timestamp: patron.pledgeRelationshipStart,
       });
     });

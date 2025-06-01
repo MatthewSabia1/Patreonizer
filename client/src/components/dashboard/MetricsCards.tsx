@@ -87,13 +87,13 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
                     <p className="text-muted-foreground text-sm font-medium">
                       {metric.title}
                     </p>
-                    <p className="text-3xl font-bold mt-1">
-                      {isLoading ? (
-                        <div className="h-8 w-24 bg-muted animate-pulse rounded" />
-                      ) : (
+                    {isLoading ? (
+                      <div className="h-8 w-24 bg-muted animate-pulse rounded mt-1" />
+                    ) : (
+                      <p className="text-3xl font-bold mt-1">
                         <span className={metric.color}>{metric.value}</span>
-                      )}
-                    </p>
+                      </p>
+                    )}
                     <div className="flex items-center space-x-1 mt-2">
                       <ChangeIcon className={`w-4 h-4 ${isPositive ? 'text-green-500' : 'text-red-500'}`} />
                       <span className={`text-sm font-medium ${isPositive ? 'text-green-500' : 'text-red-500'}`}>
