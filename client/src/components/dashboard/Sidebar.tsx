@@ -52,14 +52,14 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
           transition={{ delay: 0.1, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="flex items-center space-x-3"
         >
-          <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent/80 rounded-xl flex items-center justify-center shadow-glow">
-            <ChartArea className="h-6 w-6 text-accent-foreground" />
+          <div className="w-11 h-11 bg-gradient-to-br from-accent via-accent to-accent/90 rounded-xl flex items-center justify-center shadow-glow ring-1 ring-accent/20">
+            <ChartArea className="h-6 w-6 text-accent-foreground drop-shadow-sm" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-sidebar-foreground bg-gradient-to-r from-accent to-accent/80 bg-clip-text text-transparent">
+            <h1 className="text-xl font-bold text-sidebar-foreground bg-gradient-to-r from-accent via-accent/95 to-accent/80 bg-clip-text text-transparent tracking-tight">
               Patreonizer
             </h1>
-            <p className="text-xs text-sidebar-foreground/50 font-medium">Multi-Campaign Manager</p>
+            <p className="text-xs text-sidebar-foreground/50 font-medium tracking-wide">Multi-Campaign Manager</p>
           </div>
         </motion.div>
       </div>

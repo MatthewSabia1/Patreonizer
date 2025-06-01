@@ -212,10 +212,10 @@ export default function Dashboard() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text text-transparent tracking-tight">
                 Dashboard Overview
               </h1>
-              <span className="text-muted-foreground/70 font-medium">Track your Patreon campaigns performance</span>
+              <p className="text-muted-foreground/70 font-medium mt-1">Track your Patreon campaigns performance</p>
             </motion.div>
             
             <motion.div 
@@ -250,8 +250,8 @@ export default function Dashboard() {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground/80 bg-muted/30 px-3 py-2 rounded-lg border border-border/30">
-                <div className="w-2 h-2 bg-green-400 rounded-full status-dot status-success" />
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground/80 bg-muted/20 px-3 py-2 rounded-lg border border-border/20 backdrop-blur-sm">
+                <div className="w-2 h-2 bg-green-400 rounded-full status-dot status-success animate-pulse" />
                 <span className="font-medium">Synced 2 min ago</span>
               </div>
 

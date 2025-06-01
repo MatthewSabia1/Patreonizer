@@ -83,8 +83,8 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
                     <h3 className="text-sm font-medium text-muted-foreground/80 uppercase tracking-wider">
                       {metric.title}
                     </h3>
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${metric.bgColor} shadow-lg transition-transform duration-200 hover:scale-105`}>
-                      <Icon className={`w-6 h-6 ${metric.iconColor}`} />
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${metric.bgColor} shadow-lg transition-all duration-200 hover:scale-105 ring-1 ring-white/5`}>
+                      <Icon className={`w-6 h-6 ${metric.iconColor} drop-shadow-sm`} />
                     </div>
                   </div>
                   
