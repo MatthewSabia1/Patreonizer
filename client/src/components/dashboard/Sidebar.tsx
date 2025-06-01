@@ -38,46 +38,69 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
 
   return (
     <motion.aside 
-      initial={{ x: -300 }}
-      animate={{ x: 0 }}
-      className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col h-full"
+      initial={{ x: -300, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="w-64 bg-sidebar/95 backdrop-glass border-r border-sidebar-border flex flex-col h-full shadow-card-soft"
     >
       {/* Header */}
-      <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-sidebar-primary rounded-lg flex items-center justify-center">
-            <ChartArea className="h-6 w-6 text-sidebar-primary-foreground" />
+      <div className="p-6 border-b border-sidebar-border/50">
+        <motion.div 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="flex items-center space-x-3"
+        >
+          <div className="w-10 h-10 bg-gradient-to-br from-accent to-accent/80 rounded-xl flex items-center justify-center shadow-glow">
+            <ChartArea className="h-6 w-6 text-accent-foreground" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-sidebar-foreground">Patreonizer</h1>
-            <p className="text-xs text-sidebar-foreground/60">Multi-Campaign Manager</p>
+            <h1 className="text-xl font-bold text-sidebar-foreground bg-gradient-to-r from-accent to-accent/80 bg-clip-text text-transparent">
+              Patreonizer
+            </h1>
+            <p className="text-xs text-sidebar-foreground/50 font-medium">Multi-Campaign Manager</p>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
-        {navigation.map((item) => {
+      <nav className="flex-1 p-4 space-y-1">
+        {navigation.map((item, index) => {
           const isActive = location === item.href;
           const Icon = item.icon;
           
           return (
-            <Link key={item.name} href={item.href}>
-              <motion.div
-                whileHover={{ x: 4 }}
-                whileTap={{ scale: 0.98 }}
-                className={`
-                  flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors sidebar-link
-                  ${isActive 
-                    ? 'bg-sidebar-primary text-sidebar-primary-foreground' 
-                    : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent'
-                  }
-                `}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="font-medium">{item.name}</span>
-              </motion.div>
-            </Link>
+            <motion.div
+              key={item.name}
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ delay: 0.1 * index, duration: 0.3 }}
+            >
+              <Link href={item.href}>
+                <motion.div
+                  whileHover={{ x: 6, scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={`
+                    sidebar-link flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ease-out relative group
+                    ${isActive 
+                      ? 'active bg-gradient-to-r from-accent/15 to-accent/5 text-accent border-accent/30 shadow-glow' 
+                      : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60 border-transparent'
+                    }
+                  `}
+                >
+                  <Icon className={`w-5 h-5 transition-transform duration-300 ${isActive ? 'scale-110' : 'group-hover:scale-105'}`} />
+                  <span className="font-medium tracking-wide">{item.name}</span>
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute right-2 w-2 h-2 bg-accent rounded-full shadow-lg"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                    />
+                  )}
+                </motion.div>
+              </Link>
+            </motion.div>
           );
         })}
       </nav>
