@@ -198,25 +198,37 @@ export default function Dashboard() {
     <div className="flex h-screen overflow-hidden bg-background">
       <Sidebar onConnectPatreon={() => setShowConnectModal(true)} />
       
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto scrollbar-custom">
         {/* Header */}
         <motion.header
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card border-b border-border p-6"
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="bg-card/95 backdrop-glass border-b border-border/50 p-6 shadow-card-soft"
         >
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Dashboard Overview</h1>
-              <span className="text-muted-foreground">Track your Patreon campaigns performance</span>
-            </div>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                Dashboard Overview
+              </h1>
+              <span className="text-muted-foreground/70 font-medium">Track your Patreon campaigns performance</span>
+            </motion.div>
             
-            <div className="flex items-center space-x-4">
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="flex items-center space-x-4"
+            >
               <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-44 input-enhanced border-border/60 focus:border-accent/50">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="glass-card">
                   <SelectItem value="all">All Campaigns</SelectItem>
                   {campaigns.map((campaign: any) => (
                     <SelectItem key={campaign.id} value={campaign.id.toString()}>
@@ -227,10 +239,10 @@ export default function Dashboard() {
               </Select>
 
               <Select value={timeRange} onValueChange={setTimeRange}>
-                <SelectTrigger className="w-32">
+                <SelectTrigger className="w-36 input-enhanced border-border/60 focus:border-accent/50">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="glass-card">
                   <SelectItem value="7">Last 7 days</SelectItem>
                   <SelectItem value="30">Last 30 days</SelectItem>
                   <SelectItem value="90">Last 90 days</SelectItem>
@@ -238,49 +250,73 @@ export default function Dashboard() {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span>Synced 2 min ago</span>
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground/80 bg-muted/30 px-3 py-2 rounded-lg border border-border/30">
+                <div className="w-2 h-2 bg-green-400 rounded-full status-dot status-success" />
+                <span className="font-medium">Synced 2 min ago</span>
               </div>
 
               <Button
                 onClick={handleSyncAll}
                 disabled={syncMutation.isPending}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="bg-gradient-to-r from-accent to-accent/90 hover:from-accent/90 hover:to-accent/80 text-accent-foreground btn-glow transition-all duration-300 shadow-lg hover:shadow-glow border-0"
               >
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Sync Now
+                <RotateCcw className={`w-4 h-4 mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+                {syncMutation.isPending ? 'Syncing...' : 'Sync Now'}
               </Button>
-            </div>
+            </motion.div>
           </div>
         </motion.header>
 
         {/* Dashboard Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-8 space-y-8 page-transition">
           {/* Key Metrics */}
-          <MetricsCards data={metrics} isLoading={metricsLoading} />
+          <motion.section
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+          >
+            <MetricsCards data={metrics} isLoading={metricsLoading} />
+          </motion.section>
 
           {/* Charts */}
-          <RevenueChart
-            revenueData={revenueData}
-            patronData={revenueData}
-            campaigns={campaigns}
-            isLoading={revenueLoading}
-          />
+          <motion.section
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.6 }}
+          >
+            <RevenueChart
+              revenueData={revenueData}
+              patronData={revenueData}
+              campaigns={campaigns}
+              isLoading={revenueLoading}
+            />
+          </motion.section>
 
           {/* Campaign Performance & Recent Activity */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <CampaignTable campaigns={campaigns} isLoading={campaignsLoading} />
-            <RecentActivity activities={[]} isLoading={activityLoading} />
-          </div>
+          <motion.section
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.6 }}
+          >
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <CampaignTable campaigns={campaigns} isLoading={campaignsLoading} />
+              <RecentActivity activities={[]} isLoading={activityLoading} />
+            </div>
+          </motion.section>
 
           {/* Quick Actions */}
-          <QuickActions
-            onConnectPage={() => setShowConnectModal(true)}
-            onExportData={handleExportData}
-            onViewPatrons={handleViewPatrons}
-            onSyncAll={handleSyncAll}
-          />
+          <motion.section
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7, duration: 0.6 }}
+          >
+            <QuickActions
+              onConnectPage={() => setShowConnectModal(true)}
+              onExportData={handleExportData}
+              onViewPatrons={handleViewPatrons}
+              onSyncAll={handleSyncAll}
+            />
+          </motion.section>
         </div>
       </main>
 

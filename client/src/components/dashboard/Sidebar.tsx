@@ -106,43 +106,70 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
       </nav>
 
       {/* Connected Campaigns */}
-      <div className="p-4 border-t border-sidebar-border">
-        <h3 className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wide mb-3">
+      <div className="p-4 border-t border-sidebar-border/50">
+        <motion.h3 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider mb-4"
+        >
           Connected Pages
-        </h3>
+        </motion.h3>
         
-        <div className="space-y-2 max-h-32 overflow-y-auto">
-          {campaigns.map((campaign: any) => (
+        <div className="space-y-2 max-h-32 overflow-y-auto scrollbar-custom">
+          {campaigns.map((campaign: any, index: number) => (
             <motion.div
               key={campaign.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center space-x-2 p-2 rounded-md bg-sidebar-accent/50"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 + index * 0.1 }}
+              className="flex items-center space-x-3 p-3 rounded-lg bg-sidebar-accent/30 hover:bg-sidebar-accent/50 transition-colors duration-200 border border-sidebar-border/30"
             >
-              <div className="w-2 h-2 bg-green-500 rounded-full" />
-              <span className="text-xs font-medium text-sidebar-foreground truncate">
+              <div className="w-2 h-2 bg-green-400 rounded-full status-dot status-success animate-pulse" />
+              <span className="text-xs font-medium text-sidebar-foreground/90 truncate">
                 {campaign.title}
               </span>
             </motion.div>
           ))}
+          {campaigns.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="text-xs text-sidebar-foreground/40 text-center py-2"
+            >
+              No pages connected yet
+            </motion.div>
+          )}
         </div>
 
-        <Button 
-          onClick={onConnectPatreon}
-          className="w-full mt-4 bg-sidebar-primary hover:bg-sidebar-primary/90 text-sidebar-primary-foreground"
-          size="sm"
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Page
-        </Button>
+          <Button 
+            onClick={onConnectPatreon}
+            className="w-full mt-4 bg-gradient-to-r from-accent to-accent/90 hover:from-accent/90 hover:to-accent/80 text-accent-foreground btn-glow transition-all duration-300 shadow-lg hover:shadow-glow border-0"
+            size="sm"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Page
+          </Button>
+        </motion.div>
       </div>
 
       {/* User Profile */}
-      <div className="p-4 border-t border-sidebar-border">
-        <div className="flex items-center space-x-3">
-          <Avatar className="w-10 h-10">
+      <div className="p-4 border-t border-sidebar-border/50">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="flex items-center space-x-3"
+        >
+          <Avatar className="w-10 h-10 ring-2 ring-accent/20 transition-all duration-300 hover:ring-accent/40">
             <AvatarImage src={user?.profileImageUrl || ""} alt="Profile" />
-            <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground">
+            <AvatarFallback className="bg-gradient-to-br from-accent to-accent/80 text-accent-foreground font-semibold">
               {user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U'}
             </AvatarFallback>
           </Avatar>
@@ -150,19 +177,19 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
             <p className="text-sm font-medium text-sidebar-foreground truncate">
               {user?.firstName || user?.email?.split('@')[0] || 'User'}
             </p>
-            <p className="text-xs text-sidebar-foreground/60 truncate">
+            <p className="text-xs text-sidebar-foreground/50 truncate">
               {user?.email || 'user@example.com'}
             </p>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            className="text-sidebar-foreground/60 hover:text-sidebar-foreground"
+            className="text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all duration-200"
             onClick={() => window.location.href = '/api/logout'}
           >
             <Settings className="w-4 h-4" />
           </Button>
-        </div>
+        </motion.div>
       </div>
     </motion.aside>
   );
