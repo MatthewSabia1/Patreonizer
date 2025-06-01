@@ -29,7 +29,7 @@ export function setupPatreonAuth(app: Express) {
     clientID: PATREON_CLIENT_ID,
     clientSecret: PATREON_CLIENT_SECRET,
     callbackURL: `${baseUrl}/api/auth/patreon/callback`,
-    scope: 'identity[email] campaigns campaigns.members campaigns.posts w:campaigns.webhook my-campaign pledges-to-me',
+    scope: 'identity campaigns campaigns.members campaigns.posts w:campaigns.webhook',
     customHeaders: {
       'User-Agent': 'Patreonizer/1.0',
     },
@@ -60,7 +60,7 @@ export function setupPatreonAuth(app: Express) {
     req.session.connectingUserId = req.user.claims.sub;
     
     passport.authenticate('patreon', {
-      scope: 'identity[email] campaigns campaigns.members campaigns.posts w:campaigns.webhook my-campaign pledges-to-me'
+      scope: 'identity campaigns campaigns.members campaigns.posts w:campaigns.webhook'
     })(req, res, next);
   });
 

@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupPatreonAuth } from "./patreonAuth";
+import { setupWebhookHandlers } from "./webhookHandler";
 import { patreonApi } from "./patreonApi";
 import { syncService } from "./syncService";
 import { z } from "zod";
@@ -13,6 +14,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Patreon OAuth setup
   setupPatreonAuth(app);
+  
+  // Webhook handlers
+  setupWebhookHandlers(app);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
@@ -246,6 +250,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error exporting data:", error);
       res.status(500).json({ message: "Failed to export data" });
+    }
+  });
+
+  // Webhook management routes
+  app.get('/api/webhooks/:campaignId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { campaignId } = req.params;
+      
+      // Verify user owns this campaign
+      const campaign = await storage.getCampaignById(parseInt(campaignId));
+      if (!campaign || campaign.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const webhooks = await storage.getCampaignWebhooks(parseInt(campaignId));
+      res.json(webhooks);
+    } catch (error) {
+      console.error("Error fetching webhooks:", error);
+      res.status(500).json({ message: "Failed to fetch webhooks" });
+    }
+  });
+
+  app.post('/api/webhooks/:campaignId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { campaignId } = req.params;
+      const { uri, triggers, secret } = req.body;
+      
+      // Verify user owns this campaign
+      const campaign = await storage.getCampaignById(parseInt(campaignId));
+      if (!campaign || campaign.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Create webhook via Patreon API
+      const webhookData = await patreonApi.createWebhook(campaign.accessToken, uri, triggers, secret);
+      
+      // Store webhook in our database
+      const webhook = await storage.upsertWebhook({
+        campaignId: parseInt(campaignId),
+        patreonWebhookId: webhookData.data.id,
+        uri: webhookData.data.attributes.uri,
+        triggers: webhookData.data.attributes.triggers,
+        secret: webhookData.data.attributes.secret || null,
+        paused: webhookData.data.attributes.paused || false,
+      });
+      
+      res.json(webhook);
+    } catch (error) {
+      console.error("Error creating webhook:", error);
+      res.status(500).json({ message: "Failed to create webhook" });
+    }
+  });
+
+  app.delete('/api/webhooks/:webhookId', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { webhookId } = req.params;
+      
+      // Get webhook to verify ownership
+      const webhook = await storage.getWebhookById(parseInt(webhookId));
+      if (!webhook) {
+        return res.status(404).json({ message: "Webhook not found" });
+      }
+      
+      const campaign = await storage.getCampaignById(webhook.campaignId);
+      if (!campaign || campaign.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Delete from Patreon API
+      await patreonApi.deleteWebhook(campaign.accessToken, webhook.patreonWebhookId);
+      
+      // Delete from our database
+      await storage.deleteWebhook(parseInt(webhookId));
+      
+      res.json({ message: "Webhook deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting webhook:", error);
+      res.status(500).json({ message: "Failed to delete webhook" });
+    }
+  });
+
+  // Campaign tier routes
+  app.get('/api/campaigns/:campaignId/tiers', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { campaignId } = req.params;
+      
+      // Verify user owns this campaign
+      const campaign = await storage.getCampaignById(parseInt(campaignId));
+      if (!campaign || campaign.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const tiers = await storage.getCampaignTiers(parseInt(campaignId));
+      res.json(tiers);
+    } catch (error) {
+      console.error("Error fetching campaign tiers:", error);
+      res.status(500).json({ message: "Failed to fetch campaign tiers" });
+    }
+  });
+
+  // Campaign goals routes
+  app.get('/api/campaigns/:campaignId/goals', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { campaignId } = req.params;
+      
+      // Verify user owns this campaign
+      const campaign = await storage.getCampaignById(parseInt(campaignId));
+      if (!campaign || campaign.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const goals = await storage.getCampaignGoals(parseInt(campaignId));
+      res.json(goals);
+    } catch (error) {
+      console.error("Error fetching campaign goals:", error);
+      res.status(500).json({ message: "Failed to fetch campaign goals" });
+    }
+  });
+
+  // Campaign benefits routes
+  app.get('/api/campaigns/:campaignId/benefits', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { campaignId } = req.params;
+      
+      // Verify user owns this campaign
+      const campaign = await storage.getCampaignById(parseInt(campaignId));
+      if (!campaign || campaign.userId !== userId) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const benefits = await storage.getCampaignBenefits(parseInt(campaignId));
+      res.json(benefits);
+    } catch (error) {
+      console.error("Error fetching campaign benefits:", error);
+      res.status(500).json({ message: "Failed to fetch campaign benefits" });
     }
   });
 

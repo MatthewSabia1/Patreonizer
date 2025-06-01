@@ -31,7 +31,11 @@ export function setupWebhookHandlers(app: Express) {
 
       // Get webhook configuration
       const webhooks = await storage.getCampaignWebhooks(campaign.id);
-      const webhook = webhooks.find(w => w.triggers.includes(event));
+      const webhook = webhooks.find(w => {
+        const triggers = Array.isArray(w.triggers) ? w.triggers : 
+                        typeof w.triggers === 'string' ? JSON.parse(w.triggers) : [];
+        return triggers.includes(event);
+      });
       
       if (!webhook || !webhook.secret) {
         return res.status(400).json({ error: 'Webhook configuration not found' });

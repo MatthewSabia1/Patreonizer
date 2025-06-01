@@ -89,6 +89,7 @@ export interface IStorage {
   // Webhook operations
   upsertWebhook(webhook: InsertWebhook): Promise<Webhook>;
   getCampaignWebhooks(campaignId: number): Promise<Webhook[]>;
+  getWebhookById(webhookId: number): Promise<Webhook | undefined>;
   deleteWebhook(webhookId: number): Promise<void>;
 
   // Dashboard operations
