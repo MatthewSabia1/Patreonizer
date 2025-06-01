@@ -8,11 +8,11 @@ import { TrendingUp, TrendingDown, ExternalLink } from "lucide-react";
 interface Campaign {
   id: number;
   title: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
   patronCount: number;
-  pledgeSum: number;
+  pledgeSum: string;
   isActive: boolean;
-  lastSyncAt?: string;
+  lastSyncAt?: string | null;
 }
 
 interface CampaignTableProps {

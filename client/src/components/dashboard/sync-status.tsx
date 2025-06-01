@@ -189,7 +189,7 @@ export function SyncStatus() {
                         <Icon className={`w-3 h-3 ${status.status === "in_progress" ? "animate-spin" : ""}`} />
                       </div>
                       <div>
-                        <p className="font-medium text-sm">{status.accountName}</p>
+                        <div className="font-medium text-sm">{status.accountName}</div>
                         <div className="flex items-center space-x-2">
                           <span className="text-xs text-muted-foreground">
                             {status.lastSync
@@ -204,7 +204,7 @@ export function SyncStatus() {
                           )}
                         </div>
                         {status.errorMessage && (
-                          <p className="text-xs text-red-500 mt-1">{status.errorMessage}</p>
+                          <div className="text-xs text-red-500 mt-1">{status.errorMessage}</div>
                         )}
                       </div>
                     </div>
