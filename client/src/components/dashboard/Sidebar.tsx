@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import type { PatreonCampaign, User } from "@/lib/types";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: ChartArea },
@@ -32,7 +33,7 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
   const [location] = useLocation();
   const { user } = useAuth();
 
-  const { data: campaigns = [] } = useQuery({
+  const { data: campaigns = [] } = useQuery<PatreonCampaign[]>({
     queryKey: ["/api/campaigns"],
   });
 
@@ -118,7 +119,7 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
         </motion.h3>
         
         <div className="space-y-2 max-h-32 overflow-y-auto scrollbar-custom">
-          {campaigns.map((campaign: any, index: number) => (
+          {campaigns.map((campaign, index: number) => (
             <motion.div
               key={campaign.id}
               initial={{ opacity: 0, x: -20 }}
