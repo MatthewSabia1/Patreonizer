@@ -45,6 +45,7 @@ export interface IStorage {
   // Campaign operations
   getUserCampaigns(userId: string): Promise<PatreonCampaign[]>;
   getCampaignById(campaignId: number): Promise<PatreonCampaign | undefined>;
+  getCampaignByPatreonId(patreonCampaignId: string): Promise<PatreonCampaign | undefined>;
   createCampaign(campaign: InsertPatreonCampaign): Promise<PatreonCampaign>;
   updateCampaign(campaignId: number, updates: Partial<InsertPatreonCampaign>): Promise<void>;
   deleteCampaign(campaignId: number): Promise<void>;
@@ -140,6 +141,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(patreonCampaigns)
       .where(eq(patreonCampaigns.id, campaignId));
+    return campaign;
+  }
+
+  async getCampaignByPatreonId(patreonCampaignId: string): Promise<PatreonCampaign | undefined> {
+    const [campaign] = await db
+      .select()
+      .from(patreonCampaigns)
+      .where(eq(patreonCampaigns.patreonCampaignId, patreonCampaignId));
     return campaign;
   }
 
