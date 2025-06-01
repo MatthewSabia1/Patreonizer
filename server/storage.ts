@@ -514,15 +514,17 @@ export class DatabaseStorage implements IStorage {
 
     const campaignIds = userCampaigns.map(c => c.id);
 
-    // Calculate current metrics
-    const currentRevenue = userCampaigns.reduce(
-      (sum, campaign) => sum + parseFloat(campaign.pledgeSum || "0"),
-      0
-    );
-    const currentPatrons = userCampaigns.reduce(
-      (sum, campaign) => sum + (campaign.patronCount || 0),
-      0
-    );
+    // Calculate current metrics from actual patron data
+    const actualMetrics = await db
+      .select({
+        monthlyRevenue: sql<number>`sum(case when ${patrons.patronStatus} = 'active_patron' then ${patrons.currentlyEntitledAmountCents} else 0 end) / 100.0`,
+        activePatrons: sql<number>`count(case when ${patrons.patronStatus} = 'active_patron' then 1 end)`,
+      })
+      .from(patrons)
+      .where(sql`${patrons.campaignId} IN ${campaignIds}`);
+
+    const currentRevenue = actualMetrics[0]?.monthlyRevenue || 0;
+    const currentPatrons = actualMetrics[0]?.activePatrons || 0;
 
     // Get revenue data for last 60 days to calculate changes
     const sixtyDaysAgo = new Date();
