@@ -311,7 +311,7 @@ export default function ConnectedPages() {
                     <p className="text-sm text-muted-foreground">Total Revenue</p>
                     <p className="text-2xl font-bold">
                       {formatCurrency(
-                        campaigns.reduce((sum: number, campaign: Campaign) => sum + parseFloat(campaign.pledgeSum), 0).toString()
+                        campaigns.reduce((sum: number, campaign: Campaign) => sum + (campaign.actualMonthlyRevenue || parseFloat(campaign.pledgeSum)), 0).toString()
                       )}
                     </p>
                   </div>

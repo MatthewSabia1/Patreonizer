@@ -308,9 +308,12 @@ export default function PatronData() {
                   <div>
                     <p className="text-sm text-muted-foreground">Avg. Support</p>
                     <p className="text-2xl font-bold">
-                      {patrons.length > 0 
+                      {patrons.filter(p => p.patronStatus === 'active_patron').length > 0 
                         ? formatCurrency(
-                            patrons.reduce((sum, patron) => sum + patron.currentlyEntitledAmountCents, 0) / patrons.length
+                            patrons
+                              .filter(patron => patron.patronStatus === 'active_patron')
+                              .reduce((sum, patron) => sum + patron.currentlyEntitledAmountCents, 0) / 
+                            patrons.filter(p => p.patronStatus === 'active_patron').length
                           )
                         : formatCurrency(0)
                       }
