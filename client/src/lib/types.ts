@@ -19,6 +19,8 @@ export interface PatreonCampaign {
   vanityUrl: string | null;
   patronCount: number;
   pledgeSum: string;
+  actualMonthlyRevenue?: number;
+  actualPatronCount?: number;
   isActive: boolean;
   accessToken: string;
   refreshToken: string | null;
