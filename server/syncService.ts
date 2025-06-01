@@ -247,8 +247,8 @@ class SyncService {
           postMetadata: post.attributes?.post_metadata || null,
           isPublic: post.attributes?.is_public || false,
           isPaid: post.attributes?.is_paid || false,
-          likeCount: post.attributes?.like_count || 0,
-          commentCount: post.attributes?.comment_count || 0,
+          likeCount: post.attributes?.like_count || post.attributes?.num_likes || 0,
+          commentCount: post.attributes?.comment_count || post.attributes?.num_comments || 0,
           appId: post.attributes?.app_id || null,
           appStatus: post.attributes?.app_status || null,
           publishedAt: post.attributes?.published_at ? 
