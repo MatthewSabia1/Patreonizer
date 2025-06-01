@@ -80,7 +80,7 @@ export function setupPatreonAuth(app: Express) {
         const grantedScopes = scope ? scope.split(' ') : [];
         
         // Check for identity scope (can be identity or identity[email])
-        const hasIdentity = grantedScopes.some(s => s.startsWith('identity'));
+        const hasIdentity = grantedScopes.some((s: string) => s.startsWith('identity'));
         const hasCampaigns = grantedScopes.includes('campaigns');
         const hasMembers = grantedScopes.includes('campaigns.members');
         
