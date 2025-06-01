@@ -1,0 +1,87 @@
+Patreonizer PRD Prompt
+
+Build a web app called “Patreonizer” which will help Patreon creators who own and manage multiple pages view, track and sync the revenue and Patron/member analytics across multiple pages.
+
+## Core Features to start with:
+
+- Proper Patreon Oauth integration allowing users to connect their multiple Patreon creator accounts syncing ALL campaign and Patron data the Patreon 2.0 API allows us to collect. All data for each user’s connected Patreon page should be updated in realtime each time the user logs into their account and loads the app/page to keep the data up to date and as close to real time as possible. (https://docs.patreon.com/#introduction)
+- Use Replit Auth 2.0 for user authentication and Replit databases for the user data.
+- A dashboard view which will allow users to view the combined revenue, traffic and performance data for their Patreon pages including monthly revenue, traffic stats, post performance data and all other essential data. The dashboard page should also include proper beautiful indicators showing daily, weekly and monthly changes the numbers and include proper filters to view the statistics for individual connected Patreon pages or multiple selected pages at once.
+- The app should include a “Patron Data” page which allows the user to view detailed data for each Patron subscribed to one of their connected Patreon pages including their name, email, membership info, and etc. This page should also allow the user to export data.
+- The sign up flow for the app integrated with Replit Auth should include a beautiful, intuitive and simple user friendly flow guiding the user to connect their first Patreon page to pull and view data from using proper Patreon 2.0 API Oauth.
+
+## Important Notes:
+
+- Patreonizer should have a beautiful, simple and intuitive dark mode interface with the Shadcn “Rose” theme. Ensure that the app pulls from a core consistent styling system so we can easily create new components and features as we go along. The app should have beautiful and tasteful Framer Motion style animations and card interactions/transitions. (I’ll attach the styling code for Shadcn as well)
+
+- Please be sure to do a deep dive analysis to understand the Patreon API based on their docs here: https://docs.patreon.com/#introduction
+
+- Ensure that the app and project has proper detailed and comprehensive documentation for both the frontend and backend updating it as we go along as well.  ShadCN styling code:  :root {
+-   --radius: 0.65rem;
+-   --background: oklch(1 0 0);
+-   --foreground: oklch(0.141 0.005 285.823);
+-   --card: oklch(1 0 0);
+-   --card-foreground: oklch(0.141 0.005 285.823);
+-   --popover: oklch(1 0 0);
+-   --popover-foreground: oklch(0.141 0.005 285.823);
+-   --primary: oklch(0.705 0.213 47.604);
+-   --primary-foreground: oklch(0.98 0.016 73.684);
+-   --secondary: oklch(0.967 0.001 286.375);
+-   --secondary-foreground: oklch(0.21 0.006 285.885);
+-   --muted: oklch(0.967 0.001 286.375);
+-   --muted-foreground: oklch(0.552 0.016 285.938);
+-   --accent: oklch(0.967 0.001 286.375);
+-   --accent-foreground: oklch(0.21 0.006 285.885);
+-   --destructive: oklch(0.577 0.245 27.325);
+-   --border: oklch(0.92 0.004 286.32);
+-   --input: oklch(0.92 0.004 286.32);
+-   --ring: oklch(0.705 0.213 47.604);
+-   --chart-1: oklch(0.646 0.222 41.116);
+-   --chart-2: oklch(0.6 0.118 184.704);
+-   --chart-3: oklch(0.398 0.07 227.392);
+-   --chart-4: oklch(0.828 0.189 84.429);
+-   --chart-5: oklch(0.769 0.188 70.08);
+-   --sidebar: oklch(0.985 0 0);
+-   --sidebar-foreground: oklch(0.141 0.005 285.823);
+-   --sidebar-primary: oklch(0.705 0.213 47.604);
+-   --sidebar-primary-foreground: oklch(0.98 0.016 73.684);
+-   --sidebar-accent: oklch(0.967 0.001 286.375);
+-   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+-   --sidebar-border: oklch(0.92 0.004 286.32);
+-   --sidebar-ring: oklch(0.705 0.213 47.604);
+- }
+- 
+- .dark {
+-   --background: oklch(0.141 0.005 285.823);
+-   --foreground: oklch(0.985 0 0);
+-   --card: oklch(0.21 0.006 285.885);
+-   --card-foreground: oklch(0.985 0 0);
+-   --popover: oklch(0.21 0.006 285.885);
+-   --popover-foreground: oklch(0.985 0 0);
+-   --primary: oklch(0.646 0.222 41.116);
+-   --primary-foreground: oklch(0.98 0.016 73.684);
+-   --secondary: oklch(0.274 0.006 286.033);
+-   --secondary-foreground: oklch(0.985 0 0);
+-   --muted: oklch(0.274 0.006 286.033);
+-   --muted-foreground: oklch(0.705 0.015 286.067);
+-   --accent: oklch(0.274 0.006 286.033);
+-   --accent-foreground: oklch(0.985 0 0);
+-   --destructive: oklch(0.704 0.191 22.216);
+-   --border: oklch(1 0 0 / 10%);
+-   --input: oklch(1 0 0 / 15%);
+-   --ring: oklch(0.646 0.222 41.116);
+-   --chart-1: oklch(0.488 0.243 264.376);
+-   --chart-2: oklch(0.696 0.17 162.48);
+-   --chart-3: oklch(0.769 0.188 70.08);
+-   --chart-4: oklch(0.627 0.265 303.9);
+-   --chart-5: oklch(0.645 0.246 16.439);
+-   --sidebar: oklch(0.21 0.006 285.885);
+-   --sidebar-foreground: oklch(0.985 0 0);
+-   --sidebar-primary: oklch(0.646 0.222 41.116);
+-   --sidebar-primary-foreground: oklch(0.98 0.016 73.684);
+-   --sidebar-accent: oklch(0.274 0.006 286.033);
+-   --sidebar-accent-foreground: oklch(0.985 0 0);
+-   --sidebar-border: oklch(1 0 0 / 10%);
+-   --sidebar-ring: oklch(0.646 0.222 41.116);
+- }
+- 
