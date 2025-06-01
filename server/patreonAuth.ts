@@ -20,12 +20,22 @@ export function setupPatreonAuth(app: Express) {
     clientID: PATREON_CLIENT_ID,
     clientSecret: PATREON_CLIENT_SECRET,
     callbackURL: `${baseUrl}/api/auth/patreon/callback`,
-    scope: 'identity campaigns campaigns.members pledges-to-me my-campaign',
-  }, async (accessToken: string, refreshToken: string, profile: any, done: any) => {
+    scope: 'identity identity[email] campaigns campaigns.members campaigns.posts my-campaign pledges-to-me',
+    customHeaders: {
+      'User-Agent': 'Patreonizer/1.0',
+    },
+  }, async (accessToken: string, refreshToken: string, params: any, profile: any, done: any) => {
     try {
-      // The profile will be empty since we're using OAuth2Strategy
-      // We'll fetch the user data using the access token
-      done(null, { accessToken, refreshToken });
+      const expiresAt = params.expires_in ? 
+        new Date(Date.now() + (params.expires_in * 1000)) : 
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // Default 30 days
+
+      done(null, { 
+        accessToken, 
+        refreshToken, 
+        expiresAt,
+        scope: params.scope || 'identity campaigns campaigns.members campaigns.posts my-campaign pledges-to-me'
+      });
     } catch (error) {
       done(error);
     }
@@ -49,34 +59,49 @@ export function setupPatreonAuth(app: Express) {
     passport.authenticate('patreon', { session: false }),
     async (req: any, res) => {
       try {
-        const { accessToken, refreshToken } = req.user;
+        const { accessToken, refreshToken, expiresAt, scope } = req.user;
         const userId = req.session.connectingUserId;
 
         if (!userId) {
           return res.redirect('/?error=session_expired');
         }
 
-        // Fetch user identity and campaigns from Patreon
-        const identity = await patreonApi.getCurrentUser(accessToken);
-        const campaigns = await patreonApi.getUserCampaigns(accessToken);
+        // Verify we have the required scopes
+        const requiredScopes = ['identity', 'campaigns', 'campaigns.members'];
+        const grantedScopes = scope ? scope.split(' ') : [];
+        const missingScopes = requiredScopes.filter(s => !grantedScopes.includes(s));
+        
+        if (missingScopes.length > 0) {
+          console.error('Missing required scopes:', missingScopes);
+          return res.redirect('/?error=insufficient_permissions');
+        }
 
-        // Store each campaign
-        for (const campaignData of campaigns) {
+        // Fetch user identity and campaigns from Patreon API
+        const identity = await patreonApi.getCurrentUser(accessToken);
+        const campaignsResponse = await patreonApi.getUserCampaigns(accessToken);
+
+        if (!campaignsResponse.campaigns || campaignsResponse.campaigns.length === 0) {
+          return res.redirect('/?error=no_campaigns_found');
+        }
+
+        // Store each campaign with authentic Patreon data
+        for (const campaignData of campaignsResponse.campaigns) {
           const campaign = await storage.createCampaign({
             userId,
             patreonCampaignId: campaignData.id,
             title: campaignData.attributes.creation_name || 'Untitled Campaign',
-            summary: campaignData.attributes.summary,
-            imageUrl: campaignData.attributes.image_url,
-            vanityUrl: campaignData.attributes.vanity,
+            summary: campaignData.attributes.summary || null,
+            imageUrl: campaignData.attributes.image_url || null,
+            vanityUrl: campaignData.attributes.vanity || null,
             patronCount: campaignData.attributes.patron_count || 0,
-            pledgeSum: campaignData.attributes.pledge_sum ? (campaignData.attributes.pledge_sum / 100).toString() : "0",
+            pledgeSum: campaignData.attributes.pledge_sum ? 
+              (campaignData.attributes.pledge_sum / 100).toString() : "0",
             accessToken,
             refreshToken,
-            tokenExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            tokenExpiresAt: expiresAt,
           });
 
-          // Start initial sync for the campaign
+          // Start initial sync for the campaign to get authentic patron data
           await syncService.startSync(userId, campaign.id, 'initial');
         }
 
@@ -86,6 +111,16 @@ export function setupPatreonAuth(app: Express) {
         res.redirect('/?connected=true');
       } catch (error) {
         console.error('Patreon OAuth callback error:', error);
+        
+        // Handle specific API errors
+        if (error.message?.includes('Unauthorized')) {
+          return res.redirect('/?error=invalid_token');
+        } else if (error.message?.includes('Forbidden')) {
+          return res.redirect('/?error=access_denied');
+        } else if (error.message?.includes('Rate limited')) {
+          return res.redirect('/?error=rate_limited');
+        }
+        
         res.redirect('/?error=connection_failed');
       }
     }
