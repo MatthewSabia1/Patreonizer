@@ -338,7 +338,7 @@ class SyncService {
       // Update campaign with comprehensive data
       await storage.updateCampaign(campaign.id, {
         creationName: campaignData.attributes?.creation_name || campaign.creationName,
-        title: campaignData.attributes?.creation_name || campaign.title,
+        title: campaignData.attributes?.one_liner || campaignData.attributes?.creation_name || campaign.title,
         summary: campaignData.attributes?.summary || campaign.summary,
         imageUrl: campaignData.attributes?.image_url || campaign.imageUrl,
         vanityUrl: campaignData.attributes?.vanity || campaign.vanityUrl,
