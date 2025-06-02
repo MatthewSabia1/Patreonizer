@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useScreenSize } from "@/hooks/use-mobile";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -112,6 +113,7 @@ export default function Settings() {
   });
 
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isMobile, isTablet, isSmallMobile } = useScreenSize();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -286,19 +288,20 @@ export default function Settings() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar onConnectPatreon={() => setShowConnectModal(true)} />
+      {!isMobile && <Sidebar onConnectPatreon={() => setShowConnectModal(true)} />}
+      {isMobile && <Sidebar onConnectPatreon={() => setShowConnectModal(true)} />}
       
-      <main className="flex-1 overflow-auto">
+      <main className={`flex-1 overflow-auto ${isMobile ? 'pt-16' : ''}`}>
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card border-b border-border p-6"
+          className={`bg-card border-b border-border ${isMobile ? 'p-4' : 'p-6'}`}
         >
-          <div className="flex items-center justify-between">
+          <div className={`flex ${isMobile ? 'flex-col space-y-4' : 'items-center justify-between'}`}>
             <div>
-              <h1 className="text-2xl font-bold">Settings</h1>
-              <p className="text-muted-foreground">
+              <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold`}>Settings</h1>
+              <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
                 Manage your account preferences and application settings
               </p>
             </div>
@@ -306,7 +309,7 @@ export default function Settings() {
             <Button
               onClick={() => saveSettingsMutation.mutate(settings)}
               disabled={saveSettingsMutation.isPending}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              className={`bg-primary hover:bg-primary/90 text-primary-foreground ${isMobile ? 'w-full' : ''}`}
             >
               <Check className="w-4 h-4 mr-2" />
               {saveSettingsMutation.isPending ? 'Saving...' : 'Save Changes'}
@@ -315,20 +318,32 @@ export default function Settings() {
         </motion.header>
 
         {/* Content */}
-        <div className="p-6">
+        <div className={`${isMobile ? 'p-4' : 'p-6'}`}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
           >
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full grid-cols-5">
-                <TabsTrigger value="profile">Profile</TabsTrigger>
-                <TabsTrigger value="notifications">Notifications</TabsTrigger>
-                <TabsTrigger value="privacy">Privacy</TabsTrigger>
-                <TabsTrigger value="data">Data</TabsTrigger>
-                <TabsTrigger value="account">Account</TabsTrigger>
-              </TabsList>
+              {!isMobile ? (
+                <TabsList className="grid w-full grid-cols-5">
+                  <TabsTrigger value="profile">Profile</TabsTrigger>
+                  <TabsTrigger value="notifications">Notifications</TabsTrigger>
+                  <TabsTrigger value="privacy">Privacy</TabsTrigger>
+                  <TabsTrigger value="data">Data</TabsTrigger>
+                  <TabsTrigger value="account">Account</TabsTrigger>
+                </TabsList>
+              ) : (
+                <div className="flex gap-1 overflow-x-auto pb-2 scrollbar-custom">
+                  <TabsList className="flex space-x-1 bg-muted/50 p-1 rounded-lg">
+                    <TabsTrigger value="profile" className="text-xs whitespace-nowrap px-3 py-2">Profile</TabsTrigger>
+                    <TabsTrigger value="notifications" className="text-xs whitespace-nowrap px-3 py-2">Alerts</TabsTrigger>
+                    <TabsTrigger value="privacy" className="text-xs whitespace-nowrap px-3 py-2">Privacy</TabsTrigger>
+                    <TabsTrigger value="data" className="text-xs whitespace-nowrap px-3 py-2">Data</TabsTrigger>
+                    <TabsTrigger value="account" className="text-xs whitespace-nowrap px-3 py-2">Account</TabsTrigger>
+                  </TabsList>
+                </div>
+              )}
 
               {/* Profile Tab */}
               <TabsContent value="profile" className="space-y-6">
