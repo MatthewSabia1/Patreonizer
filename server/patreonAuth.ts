@@ -99,9 +99,8 @@ export function setupPatreonAuth(app: Express) {
 
         // Store each campaign with authentic Patreon data
         for (const campaignData of campaignsResponse.campaigns) {
-          // Use the proper field priority for page display name
-          const pageDisplayName = campaignData.attributes?.display_name || 
-                                campaignData.attributes?.name || 
+          // Use vanity URL for page display name, fallback to creation_name
+          const pageDisplayName = campaignData.attributes?.vanity || 
                                 campaignData.attributes?.creation_name || 
                                 'Untitled Campaign';
           
@@ -109,7 +108,7 @@ export function setupPatreonAuth(app: Express) {
             userId,
             patreonCampaignId: campaignData.id,
             creationName: pageDisplayName,
-            title: campaignData.attributes?.title || campaignData.attributes?.creation_name || 'Untitled Campaign',
+            title: campaignData.attributes?.creation_name || 'Untitled Campaign',
             summary: campaignData.attributes.summary || null,
             imageUrl: campaignData.attributes.image_url || null,
             vanityUrl: campaignData.attributes.vanity || null,

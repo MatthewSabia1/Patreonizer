@@ -94,7 +94,7 @@ class PatreonAPI {
 
   async getUserCampaigns(accessToken: string) {
     const response = await this.makeRequest('/campaigns', accessToken, {
-      'fields[campaign]': 'creation_name,display_name,name,title,summary,image_url,vanity,patron_count,published_at,is_monthly,is_charged_immediately,created_at,main_video_embed,main_video_url,one_liner,pay_per_name,pledge_url,thanks_embed,thanks_msg,thanks_video_url,has_rss,has_sent_rss_notify,rss_feed_title,rss_artwork_url,is_nsfw',
+      'fields[campaign]': 'creation_name,summary,image_url,vanity,patron_count,published_at,is_monthly,is_charged_immediately,created_at,main_video_embed,main_video_url,one_liner,pay_per_name,pledge_url,thanks_embed,thanks_msg,thanks_video_url,has_rss,has_sent_rss_notify,rss_feed_title,rss_artwork_url,is_nsfw',
       'include': 'creator,goals,tiers,benefits',
       'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,created,is_creator',
       'fields[goal]': 'amount_cents,title,description,created_at,reached_at,completed_percentage',
@@ -235,7 +235,7 @@ class PatreonAPI {
 
   async getCampaign(accessToken: string, campaignId: string) {
     const response = await this.makeRequest(`/campaigns/${campaignId}`, accessToken, {
-      'fields[campaign]': 'creation_name,display_name,name,title,summary,image_url,vanity,patron_count,pledge_sum,published_at,is_monthly,is_charged_immediately,created_at,currency,main_video_embed,main_video_url,one_liner,pay_per_name,pledge_url,thanks_embed,thanks_msg,thanks_video_url,has_rss,has_sent_rss_notify,rss_feed_title,rss_artwork_url',
+      'fields[campaign]': 'creation_name,summary,image_url,vanity,patron_count,pledge_sum,published_at,is_monthly,is_charged_immediately,created_at,currency,main_video_embed,main_video_url,one_liner,pay_per_name,pledge_url,thanks_embed,thanks_msg,thanks_video_url,has_rss,has_sent_rss_notify,rss_feed_title,rss_artwork_url',
       'fields[user]': 'email,first_name,last_name,full_name,image_url,thumb_url,url,created,is_creator',
       'include': 'creator,goals,tiers',
       'fields[goal]': 'amount_cents,title,description,created_at,reached_at,completed_percentage',
