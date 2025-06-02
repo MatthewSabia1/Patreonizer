@@ -39,6 +39,7 @@ import {
 
 interface Campaign {
   id: number;
+  creationName: string;
   title: string;
   summary: string | null;
   imageUrl: string | null;
@@ -381,13 +382,13 @@ export default function ConnectedPages() {
                         <div className="flex items-start justify-between">
                           <div className="flex items-center space-x-3">
                             <Avatar className="w-12 h-12">
-                              <AvatarImage src={campaign.imageUrl || ""} alt={campaign.title} />
+                              <AvatarImage src={campaign.imageUrl || ""} alt={campaign.creationName} />
                               <AvatarFallback className="bg-primary/10 text-primary">
-                                {campaign.title[0]?.toUpperCase()}
+                                {campaign.creationName[0]?.toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <h3 className="font-semibold text-lg">{campaign.title}</h3>
+                              <h3 className="font-semibold text-lg">{campaign.creationName}</h3>
                               {campaign.vanityUrl && (
                                 <p className="text-sm text-muted-foreground">
                                   patreon.com/{campaign.vanityUrl}
@@ -402,7 +403,7 @@ export default function ConnectedPages() {
                       <CardContent className="space-y-4">
                         {campaign.summary && (
                           <p className="text-sm text-muted-foreground line-clamp-2">
-                            {campaign.summary}
+                            {campaign.summary.replace(/<[^>]*>/g, '').slice(0, 150) + (campaign.summary.length > 150 ? '...' : '')}
                           </p>
                         )}
 
