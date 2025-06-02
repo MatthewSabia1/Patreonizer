@@ -99,19 +99,19 @@ export default function Landing() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="max-w-md w-full text-center"
+            className={`${isMobile ? 'max-w-sm' : 'max-w-md'} w-full text-center`}
           >
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <ChartArea className="w-8 h-8 text-primary" />
+            <div className={`${isMobile ? 'w-12 h-12' : 'w-16 h-16'} bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6`}>
+              <ChartArea className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-primary`} />
             </div>
-            <h1 className="text-2xl font-bold mb-4">Welcome to Patreonizer!</h1>
-            <p className="text-muted-foreground mb-8">
+            <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold mb-4`}>Welcome to Patreonizer!</h1>
+            <p className={`text-muted-foreground mb-8 ${isMobile ? 'text-sm' : ''}`}>
               Let's connect your first Patreon campaign to start tracking your creator analytics.
             </p>
             <Button
               onClick={() => setShowConnectModal(true)}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-              size="lg"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground w-full"
+              size={isMobile ? "default" : "lg"}
             >
               <ExternalLink className="w-4 h-4 mr-2" />
               Connect Patreon Account
@@ -133,40 +133,40 @@ export default function Landing() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-accent/5" />
         
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className={`relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isMobile ? 'py-16' : 'py-24'}`}>
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             className="text-center"
           >
-            <div className="flex items-center justify-center mb-8">
-              <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mr-4">
-                <ChartArea className="w-10 h-10 text-primary-foreground" />
+            <div className={`flex ${isMobile ? 'flex-col' : 'items-center justify-center'} mb-8`}>
+              <div className={`${isMobile ? 'w-12 h-12 mx-auto mb-4' : 'w-16 h-16 mr-4'} bg-primary rounded-2xl flex items-center justify-center`}>
+                <ChartArea className={`${isMobile ? 'w-6 h-6' : 'w-10 h-10'} text-primary-foreground`} />
               </div>
-              <h1 className="text-5xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              <h1 className={`${isMobile ? 'text-3xl' : 'text-5xl'} font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent`}>
                 Patreonizer
               </h1>
             </div>
             
-            <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
+            <p className={`${isMobile ? 'text-lg' : 'text-xl'} text-muted-foreground max-w-3xl mx-auto mb-8`}>
               The ultimate analytics platform for Patreon creators. Track revenue, manage patrons, 
               and optimize your campaigns across multiple Patreon pages in one powerful dashboard.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className={`flex ${isMobile ? 'flex-col' : 'flex-col sm:flex-row'} gap-4 justify-center`}>
               <Button
                 onClick={handleLogin}
-                size="lg"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
+                size={isMobile ? "default" : "lg"}
+                className={`bg-primary hover:bg-primary/90 text-primary-foreground ${isMobile ? 'w-full' : 'px-8'}`}
               >
                 Get Started Free
               </Button>
               <Button
                 variant="outline"
-                size="lg"
+                size={isMobile ? "default" : "lg"}
                 onClick={() => setShowConnectModal(true)}
-                className="px-8"
+                className={isMobile ? 'w-full' : 'px-8'}
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 Learn More
@@ -177,21 +177,21 @@ export default function Landing() {
       </div>
 
       {/* Features Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isMobile ? 'py-16' : 'py-24'}`}>
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="text-center mb-16"
+          className={`text-center ${isMobile ? 'mb-12' : 'mb-16'}`}
         >
-          <h2 className="text-3xl font-bold mb-4">Everything you need to grow your Patreon</h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <h2 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold mb-4`}>Everything you need to grow your Patreon</h2>
+          <p className={`${isMobile ? 'text-base' : 'text-lg'} text-muted-foreground max-w-2xl mx-auto`}>
             Powerful analytics and insights to help you understand your audience, 
             optimize your content, and maximize your creator income.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className={`grid ${isSmallMobile ? 'grid-cols-1' : isMobile ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'} gap-6 md:gap-8`}>
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
@@ -203,12 +203,12 @@ export default function Landing() {
                 whileHover={{ y: -5 }}
               >
                 <Card className="bg-card border-border h-full hover:shadow-lg transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mb-4">
-                      <Icon className="w-6 h-6 text-primary" />
+                  <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
+                    <div className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} bg-primary/10 rounded-lg flex items-center justify-center mb-4`}>
+                      <Icon className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} text-primary`} />
                     </div>
-                    <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-                    <p className="text-muted-foreground">{feature.description}</p>
+                    <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold mb-2`}>{feature.title}</h3>
+                    <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>{feature.description}</p>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -219,20 +219,20 @@ export default function Landing() {
 
       {/* CTA Section */}
       <div className="bg-card border-t border-border">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+        <div className={`max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 ${isMobile ? 'py-12' : 'py-16'} text-center`}>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
           >
-            <h2 className="text-3xl font-bold mb-4">Ready to optimize your Patreon?</h2>
-            <p className="text-lg text-muted-foreground mb-8">
+            <h2 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold mb-4`}>Ready to optimize your Patreon?</h2>
+            <p className={`${isMobile ? 'text-base' : 'text-lg'} text-muted-foreground mb-8`}>
               Join thousands of creators who are already using Patreonizer to grow their communities.
             </p>
             <Button
               onClick={handleLogin}
-              size="lg"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground px-8"
+              size={isMobile ? "default" : "lg"}
+              className={`bg-primary hover:bg-primary/90 text-primary-foreground ${isMobile ? 'w-full' : 'px-8'}`}
             >
               Start Your Free Account
             </Button>
