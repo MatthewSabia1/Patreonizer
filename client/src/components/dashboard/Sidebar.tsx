@@ -65,30 +65,40 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
   }, [isMobile, isOpen]);
 
   const SidebarContent = () => (
-    <div className={`${isMobile ? 'w-80' : 'w-64'} bg-sidebar/95 backdrop-glass border-r border-sidebar-border flex flex-col h-full shadow-card-soft`}>
+    <div className={`${
+      isMobile ? 'mobile-sidebar w-80 max-w-[85vw]' : 'w-64'
+    } bg-sidebar/95 backdrop-glass border-r border-sidebar-border flex flex-col h-full shadow-card-soft`}>
       {/* Header */}
-      <div className="p-6 border-b border-sidebar-border/50">
+      <div className={`${isMobile ? 'p-4' : 'p-6'} border-b border-sidebar-border/50`}>
         <motion.div 
           initial={{ y: -8, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
           className="flex items-center space-x-3"
         >
-          <div className="w-11 h-11 bg-gradient-to-br from-accent via-accent to-accent/90 rounded-xl flex items-center justify-center shadow-glow ring-1 ring-accent/20">
-            <ChartArea className="h-6 w-6 text-accent-foreground drop-shadow-sm" />
+          <div className={`${
+            isMobile ? 'w-9 h-9' : 'w-11 h-11'
+          } bg-gradient-to-br from-accent via-accent to-accent/90 rounded-xl flex items-center justify-center shadow-glow ring-1 ring-accent/20`}>
+            <ChartArea className={`${
+              isMobile ? 'h-5 w-5' : 'h-6 w-6'
+            } text-accent-foreground drop-shadow-sm`} />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-sidebar-foreground bg-gradient-to-r from-accent via-accent/95 to-accent/80 bg-clip-text text-transparent tracking-tight">
+          <div className="flex-1 min-w-0">
+            <h1 className={`${
+              isMobile ? 'text-lg' : 'text-xl'
+            } font-bold text-sidebar-foreground bg-gradient-to-r from-accent via-accent/95 to-accent/80 bg-clip-text text-transparent tracking-tight`}>
               Patreonizer
             </h1>
-            <p className="text-xs text-sidebar-foreground/50 font-medium tracking-wide">Multi-Campaign Manager</p>
+            {!isMobile && (
+              <p className="text-xs text-sidebar-foreground/50 font-medium tracking-wide">Multi-Campaign Manager</p>
+            )}
           </div>
           {isMobile && (
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsOpen(false)}
-              className="ml-auto p-2 hover:bg-sidebar-accent/50"
+              className="ml-auto p-2 hover:bg-sidebar-accent/50 mobile-focus"
             >
               <X className="w-5 h-5" />
             </Button>
@@ -97,7 +107,7 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className={`flex-1 ${isMobile ? 'p-3 space-y-1' : 'p-4 space-y-1'}`}>
         {navigation.map((item, index) => {
           const isActive = location === item.href;
           const Icon = item.icon;
@@ -115,15 +125,20 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
                   whileTap={{ scale: 0.99 }}
                   transition={{ duration: 0.15, ease: "easeOut" }}
                   className={`
-                    sidebar-link flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ease-out relative group cursor-pointer
+                    sidebar-link flex items-center space-x-3 rounded-xl transition-all duration-200 ease-out relative group cursor-pointer mobile-focus
+                    ${isMobile ? 'px-3 py-3' : 'px-4 py-3'}
                     ${isActive 
                       ? 'active bg-gradient-to-r from-accent/15 to-accent/5 text-accent border-accent/30 shadow-glow' 
                       : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60 border-transparent'
                     }
                   `}
                 >
-                  <Icon className={`w-5 h-5 transition-transform duration-200 ${isActive ? 'scale-105' : 'group-hover:scale-102'}`} />
-                  <span className="font-medium tracking-wide">{item.name}</span>
+                  <Icon className={`${
+                    isMobile ? 'w-5 h-5' : 'w-5 h-5'
+                  } transition-transform duration-200 ${isActive ? 'scale-105' : 'group-hover:scale-102'}`} />
+                  <span className={`font-medium tracking-wide ${
+                    isMobile ? 'text-sm' : ''
+                  }`}>{item.name}</span>
                   {isActive && (
                     <motion.div
                       layoutId="activeTab"

@@ -200,43 +200,56 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      {!isMobile && <Sidebar onConnectPatreon={() => setShowConnectModal(true)} />}
-      {isMobile && <Sidebar onConnectPatreon={() => setShowConnectModal(true)} />}
+      <Sidebar onConnectPatreon={() => setShowConnectModal(true)} />
       
-      <main className={`flex-1 overflow-auto scrollbar-custom ${isMobile ? 'pt-16' : ''}`}>
+      <main className={`flex-1 overflow-auto scrollbar-custom ${isMobile ? 'mobile-content' : ''}`}>
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="bg-card/95 backdrop-glass border-b border-border/50 p-4 md:p-6 shadow-card-soft"
+          className={`bg-card/95 backdrop-glass border-b border-border/50 shadow-card-soft ${
+            isMobile ? 'mobile-header p-3' : 'p-4 md:p-6'
+          }`}
         >
-          <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
+          <div className={`flex flex-col ${isMobile ? 'space-y-3' : 'space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0'}`}>
             <motion.div
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
-              <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text text-transparent tracking-tight`}>
+              <h1 className={`${
+                isSmallMobile ? 'text-xl' : isMobile ? 'text-2xl' : 'text-3xl'
+              } font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text text-transparent tracking-tight`}>
                 Dashboard Overview
               </h1>
-              <p className="text-muted-foreground/70 font-medium mt-1">Track your Patreon campaigns performance</p>
+              {!isSmallMobile && (
+                <p className={`text-muted-foreground/70 font-medium mt-1 ${isMobile ? 'text-sm' : ''}`}>
+                  Track your Patreon campaigns performance
+                </p>
+              )}
             </motion.div>
             
             <motion.div 
               initial={{ opacity: 0, x: 8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.15, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="flex flex-col space-y-3 md:flex-row md:items-center md:space-x-4 md:space-y-0"
+              className={`flex flex-col ${
+                isMobile ? 'space-y-2' : 'space-y-3 md:flex-row md:items-center md:space-x-4 md:space-y-0'
+              }`}
             >
               {!isSmallMobile && <NotificationCenter />}
               
-              <div className="flex flex-col space-y-3 sm:flex-row sm:space-x-3 sm:space-y-0">
+              <div className={`flex ${
+                isMobile ? 'flex-col space-y-2' : 'flex-col space-y-3 sm:flex-row sm:space-x-3 sm:space-y-0'
+              }`}>
                 <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
-                  <SelectTrigger className={`${isMobile ? 'w-full' : 'w-44'} input-enhanced border-border/60 focus:border-accent/50`}>
+                  <SelectTrigger className={`${
+                    isMobile ? 'w-full mobile-focus' : 'w-44'
+                  } input-enhanced border-border/60 focus:border-accent/50`}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="glass-card">
+                  <SelectContent className={`glass-card ${isMobile ? 'mobile-popover' : ''}`}>
                     <SelectItem value="all">All Campaigns</SelectItem>
                     {campaigns.map((campaign) => (
                       <SelectItem key={campaign.id} value={campaign.id.toString()}>
@@ -247,10 +260,12 @@ export default function Dashboard() {
                 </Select>
 
                 <Select value={timeRange} onValueChange={setTimeRange}>
-                  <SelectTrigger className={`${isMobile ? 'w-full' : 'w-36'} input-enhanced border-border/60 focus:border-accent/50`}>
+                  <SelectTrigger className={`${
+                    isMobile ? 'w-full mobile-focus' : 'w-36'
+                  } input-enhanced border-border/60 focus:border-accent/50`}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="glass-card">
+                  <SelectContent className={`glass-card ${isMobile ? 'mobile-popover' : ''}`}>
                     <SelectItem value="7">Last 7 days</SelectItem>
                     <SelectItem value="30">Last 30 days</SelectItem>
                     <SelectItem value="90">Last 90 days</SelectItem>
@@ -269,10 +284,16 @@ export default function Dashboard() {
               <Button
                 onClick={handleSyncAll}
                 disabled={syncMutation.isPending}
-                className={`${isMobile ? 'w-full' : ''} bg-gradient-to-r from-accent to-accent/90 hover:from-accent/90 hover:to-accent/80 text-accent-foreground btn-glow transition-all duration-300 shadow-lg hover:shadow-glow border-0`}
+                className={`${
+                  isMobile ? 'w-full mobile-focus' : ''
+                } bg-gradient-to-r from-accent to-accent/90 hover:from-accent/90 hover:to-accent/80 text-accent-foreground btn-glow transition-all duration-300 shadow-lg hover:shadow-glow border-0 ${
+                  isSmallMobile ? 'btn-small-mobile' : ''
+                }`}
                 size={isMobile ? "default" : "default"}
               >
-                <RotateCcw className={`w-4 h-4 mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
+                <RotateCcw className={`${
+                  isSmallMobile ? 'w-3 h-3' : 'w-4 h-4'
+                } mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
                 {syncMutation.isPending ? 'Syncing...' : 'Sync Now'}
               </Button>
             </motion.div>
@@ -280,7 +301,9 @@ export default function Dashboard() {
         </motion.header>
 
         {/* Dashboard Content */}
-        <div className={`${isMobile ? 'p-4' : 'p-8'} space-y-6 md:space-y-8 page-transition`}>
+        <div className={`${
+          isSmallMobile ? 'p-3 space-y-4' : isMobile ? 'mobile-p-4 mobile-gap-4' : 'p-8 space-y-6 md:space-y-8'
+        } page-transition ${isMobile ? 'pb-6' : ''}`}>
           {/* Key Metrics */}
           <motion.section
             initial={{ opacity: 0, y: 16 }}
@@ -331,9 +354,11 @@ export default function Dashboard() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="pb-8"
+            className={isMobile ? 'pb-4' : 'pb-8'}
           >
-            <div className={`grid grid-cols-1 ${isMobile ? 'gap-6' : 'lg:grid-cols-3 gap-8'}`}>
+            <div className={`grid grid-cols-1 ${
+              isMobile ? 'mobile-gap-4' : isTablet ? 'tablet-card-grid' : 'lg:grid-cols-3 gap-8'
+            }`}>
               <CampaignTable campaigns={campaigns} isLoading={campaignsLoading} />
               <RecentActivity activities={[]} isLoading={activityLoading} />
             </div>
