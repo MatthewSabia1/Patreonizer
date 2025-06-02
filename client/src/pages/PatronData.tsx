@@ -84,7 +84,7 @@ export default function PatronData() {
   });
 
   // Fetch patrons with filters
-  const { data: patronsData, isLoading: patronsLoading } = useQuery({
+  const { data: patronsData = { patrons: [], total: 0 }, isLoading: patronsLoading } = useQuery<{ patrons: any[], total: number }>({
     queryKey: ["/api/patrons", selectedCampaign, currentPage, pageSize, searchQuery],
     retry: false,
   });

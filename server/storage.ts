@@ -57,7 +57,7 @@ export interface IStorage {
   exportPatronsCSV(userId: string, campaignId?: string): Promise<string>;
 
   // Post operations
-  getPosts(userId: string, campaignId?: string, page?: number, limit?: number, search?: string, postType?: string): Promise<{ posts: (Post & { campaignTitle?: string })[]; total: number }>;
+  getPosts(userId: string, campaignId?: string, page?: number, limit?: number, search?: string, postType?: string): Promise<{ posts: any[]; total: number }>;
   upsertPost(post: InsertPost): Promise<Post>;
 
   // Sync operations
