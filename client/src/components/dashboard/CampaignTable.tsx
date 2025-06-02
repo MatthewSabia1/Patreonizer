@@ -117,8 +117,16 @@ export function CampaignTable({ campaigns = [], isLoading }: CampaignTableProps)
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 font-medium">{(campaign.actualPatronCount || campaign.patronCount).toLocaleString()}</td>
-                      <td className="py-4 font-medium">{formatCurrency(campaign.actualMonthlyRevenue || campaign.pledgeSum)}</td>
+                      <td className="py-4 font-medium">
+                        {(typeof campaign.actualPatronCount === 'number' ? campaign.actualPatronCount : campaign.patronCount || 0).toLocaleString()}
+                      </td>
+                      <td className="py-4 font-medium">
+                        {formatCurrency(
+                          typeof campaign.actualMonthlyRevenue === 'number' 
+                            ? campaign.actualMonthlyRevenue 
+                            : (typeof campaign.pledgeSum === 'string' ? parseFloat(campaign.pledgeSum) || 0 : campaign.pledgeSum || 0)
+                        )}
+                      </td>
                       <td className="py-4">
                         <div className="flex items-center space-x-1 text-muted-foreground">
                           <span className="text-sm">—</span>

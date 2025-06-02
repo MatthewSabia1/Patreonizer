@@ -168,9 +168,16 @@ export function RevenueChart({ revenueData = [], patronData = [], campaigns = []
                 ))
               ) : (
                 campaigns.map((campaign, index) => {
-                  // Use actual revenue calculation instead of outdated pledgeSum
-                  const actualRevenue = campaign.actualMonthlyRevenue || 0;
-                  const totalRevenue = campaigns.reduce((sum: number, c: any) => sum + (c.actualMonthlyRevenue || 0), 0);
+                  // Use accurate revenue data with proper fallbacks
+                  const actualRevenue = typeof campaign.actualMonthlyRevenue === 'number' 
+                    ? campaign.actualMonthlyRevenue 
+                    : (typeof campaign.pledgeSum === 'string' ? parseFloat(campaign.pledgeSum) || 0 : campaign.pledgeSum || 0);
+                  const totalRevenue = campaigns.reduce((sum: number, c: any) => {
+                    const campRevenue = typeof c.actualMonthlyRevenue === 'number' 
+                      ? c.actualMonthlyRevenue 
+                      : (typeof c.pledgeSum === 'string' ? parseFloat(c.pledgeSum) || 0 : c.pledgeSum || 0);
+                    return sum + campRevenue;
+                  }, 0);
                   const percentage = totalRevenue > 0 ? (actualRevenue / totalRevenue) * 100 : 0;
                   
                   return (
@@ -196,7 +203,9 @@ export function RevenueChart({ revenueData = [], patronData = [], campaigns = []
                         />
                       </div>
                       <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{campaign.actualPatronCount || campaign.patronCount} patrons</span>
+                        <span>
+                          {(typeof campaign.actualPatronCount === 'number' ? campaign.actualPatronCount : campaign.patronCount || 0)} patrons
+                        </span>
                         <span>{percentage.toFixed(1)}%</span>
                       </div>
                     </motion.div>

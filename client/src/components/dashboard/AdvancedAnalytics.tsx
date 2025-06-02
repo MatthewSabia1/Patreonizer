@@ -58,10 +58,10 @@ export function AdvancedAnalytics({ campaigns = [], revenueData = [], patronData
     return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
   };
 
-  // Use real revenue data only
-  const analyticsData = revenueData;
+  // Use actual revenue data with proper validation
+  const analyticsData = Array.isArray(revenueData) ? revenueData : [];
 
-  // Calculate growth metrics only if we have data
+  // Calculate growth metrics only if we have sufficient data
   const hasData = analyticsData.length > 0;
   let currentRevenue = 0;
   let previousRevenue = 0;
@@ -74,23 +74,40 @@ export function AdvancedAnalytics({ campaigns = [], revenueData = [], patronData
     const currentPeriod = analyticsData.slice(-7);
     const previousPeriod = analyticsData.slice(-14, -7);
     
-    currentRevenue = currentPeriod.reduce((sum, item) => sum + parseFloat(item.pledgeSum || '0'), 0);
-    previousRevenue = previousPeriod.reduce((sum, item) => sum + parseFloat(item.pledgeSum || '0'), 0);
+    currentRevenue = currentPeriod.reduce((sum, item) => {
+      const revenue = typeof item.revenue === 'number' ? item.revenue : 
+                     typeof item.pledgeSum === 'string' ? parseFloat(item.pledgeSum) || 0 : 
+                     typeof item.pledgeSum === 'number' ? item.pledgeSum : 0;
+      return sum + revenue;
+    }, 0);
+    
+    previousRevenue = previousPeriod.reduce((sum, item) => {
+      const revenue = typeof item.revenue === 'number' ? item.revenue : 
+                     typeof item.pledgeSum === 'string' ? parseFloat(item.pledgeSum) || 0 : 
+                     typeof item.pledgeSum === 'number' ? item.pledgeSum : 0;
+      return sum + revenue;
+    }, 0);
+    
     revenueGrowth = previousRevenue > 0 ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 : 0;
 
-    currentPatrons = currentPeriod[currentPeriod.length - 1]?.patronCount || 0;
-    previousPatrons = previousPeriod[previousPeriod.length - 1]?.patronCount || 0;
+    currentPatrons = currentPeriod[currentPeriod.length - 1]?.patronCount || currentPeriod[currentPeriod.length - 1]?.patrons || 0;
+    previousPatrons = previousPeriod[previousPeriod.length - 1]?.patronCount || previousPeriod[previousPeriod.length - 1]?.patrons || 0;
     patronGrowth = previousPatrons > 0 ? ((currentPatrons - previousPatrons) / previousPatrons) * 100 : 0;
   }
 
-  // Campaign performance data for pie chart
-  const campaignPerformance = campaigns.length > 0 ? campaigns.map(campaign => ({
-    name: campaign.title,
-    value: parseInt(campaign.pledgeSum) || 0,
-    fill: `hsl(${Math.random() * 360}, 70%, 50%)`,
-  })) : [
-    { name: "No Data", value: 100, fill: "hsl(var(--muted))" }
-  ];
+  // Campaign performance data for pie chart using accurate data
+  const campaignPerformance = campaigns.length > 0 ? campaigns.map((campaign, index) => {
+    const revenue = typeof campaign.actualMonthlyRevenue === 'number' 
+      ? campaign.actualMonthlyRevenue 
+      : typeof campaign.pledgeSum === 'string' ? parseFloat(campaign.pledgeSum) || 0 
+      : typeof campaign.pledgeSum === 'number' ? campaign.pledgeSum : 0;
+    
+    return {
+      name: campaign.title || campaign.creationName || 'Untitled Campaign',
+      value: revenue,
+      fill: COLORS[index % COLORS.length],
+    };
+  }).filter(item => item.value > 0) : [];
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
