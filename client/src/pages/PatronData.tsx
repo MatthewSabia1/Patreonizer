@@ -176,7 +176,7 @@ export default function PatronData() {
     }
   };
 
-  const totalPages = patronsData ? Math.ceil(patronsData.total / pageSize) : 0;
+  const totalPages = Math.ceil((patronsData?.total || 0) / pageSize);
   const patrons: Patron[] = patronsData?.patrons || [];
 
   if (authLoading) {
@@ -256,7 +256,7 @@ export default function PatronData() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Campaigns</SelectItem>
-                      {campaigns.map((campaign: any) => (
+                      {Array.isArray(campaigns) && campaigns.map((campaign: any) => (
                         <SelectItem key={campaign.id} value={campaign.id.toString()}>
                           {campaign.title}
                         </SelectItem>
@@ -281,7 +281,7 @@ export default function PatronData() {
                   <User className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-primary`} />
                   <div>
                     <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>Total Patrons</p>
-                    <p className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>{patronsData?.total?.toLocaleString() || 0}</p>
+                    <p className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>{(patronsData?.total || 0).toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
@@ -526,7 +526,7 @@ export default function PatronData() {
                     {totalPages > 1 && (
                       <div className={`flex ${isMobile ? 'flex-col space-y-4' : 'items-center justify-between'} mt-6`}>
                         <p className={`${isMobile ? 'text-xs text-center' : 'text-sm'} text-muted-foreground`}>
-                          Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, patronsData?.total || 0)} of {patronsData?.total || 0} patrons
+                          Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, patronsData?.total || 0)} of {(patronsData?.total || 0)} patrons
                         </p>
                         
                         <div className={`flex items-center ${isMobile ? 'justify-center' : ''} space-x-2`}>
