@@ -32,11 +32,9 @@ import {
   type Address,
   type InsertWebhook,
   type Webhook,
-  type UserSettings,
-  userSettingsSchema,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, gte, lte, like, or, inArray, type SQL, lt } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lte, like, or, inArray, type SQL } from "drizzle-orm";
 import { format } from "date-fns";
 
 export interface IStorage {
@@ -95,7 +93,7 @@ export interface IStorage {
   deleteWebhook(webhookId: number): Promise<void>;
 
   // Dashboard operations
-  getDashboardMetrics(userId: string, campaignId?: number): Promise<{
+  getDashboardMetrics(userId: string): Promise<{
     monthlyRevenue: number;
     revenueChange: number;
     totalPatrons: number;
@@ -106,10 +104,6 @@ export interface IStorage {
     newPatronChange: number;
   }>;
   getRecentActivity(userId: string): Promise<any[]>;
-
-  // User settings operations
-  getUserSettings(userId: string): Promise<UserSettings | null>;
-  updateUserSettings(userId: string, settings: Partial<UserSettings>): Promise<UserSettings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -551,7 +545,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Dashboard operations
-  async getDashboardMetrics(userId: string, campaignId?: number): Promise<{
+  async getDashboardMetrics(userId: string): Promise<{
     monthlyRevenue: number;
     revenueChange: number;
     totalPatrons: number;
@@ -561,38 +555,26 @@ export class DatabaseStorage implements IStorage {
     newPatrons: number;
     newPatronChange: number;
   }> {
-    let campaignIdsToQuery: number[];
+    // Get user's campaigns
+    const userCampaigns = await db
+      .select()
+      .from(patreonCampaigns)
+      .where(eq(patreonCampaigns.userId, userId));
 
-    if (campaignId) {
-      // If a specific campaignId is provided, verify it belongs to the user
-      const specificCampaign = await db
-        .select({ id: patreonCampaigns.id })
-        .from(patreonCampaigns)
-        .where(and(eq(patreonCampaigns.id, campaignId), eq(patreonCampaigns.userId, userId)));
-      
-      if (!specificCampaign || specificCampaign.length === 0) {
-        // Campaign not found or doesn't belong to user, return zeroed metrics
-        return {
-          monthlyRevenue: 0, revenueChange: 0, totalPatrons: 0, patronChange: 0,
-          avgPerPatron: 0, avgChange: 0, newPatrons: 0, newPatronChange: 0,
-        };
-      }
-      campaignIdsToQuery = [specificCampaign[0].id];
-    } else {
-      // Get all of the user's campaigns if no specific one is requested
-      const userCampaigns = await db
-        .select({ id: patreonCampaigns.id })
-        .from(patreonCampaigns)
-        .where(eq(patreonCampaigns.userId, userId));
-
-      if (userCampaigns.length === 0) {
-        return {
-          monthlyRevenue: 0, revenueChange: 0, totalPatrons: 0, patronChange: 0,
-          avgPerPatron: 0, avgChange: 0, newPatrons: 0, newPatronChange: 0,
-        };
-      }
-      campaignIdsToQuery = userCampaigns.map((c: { id: number }) => c.id);
+    if (userCampaigns.length === 0) {
+      return {
+        monthlyRevenue: 0,
+        revenueChange: 0,
+        totalPatrons: 0,
+        patronChange: 0,
+        avgPerPatron: 0,
+        avgChange: 0,
+        newPatrons: 0,
+        newPatronChange: 0,
+      };
     }
+
+    const campaignIds = userCampaigns.map(c => c.id);
 
     // Calculate current metrics from actual patron data
     const actualMetrics = await db
@@ -601,7 +583,7 @@ export class DatabaseStorage implements IStorage {
         activePatrons: sql<number>`count(case when ${patrons.patronStatus} = 'active_patron' then 1 end)`,
       })
       .from(patrons)
-      .where(sql`${patrons.campaignId} IN ${campaignIdsToQuery}`);
+      .where(sql`${patrons.campaignId} IN ${campaignIds}`);
 
     const currentRevenue = actualMetrics[0]?.monthlyRevenue || 0;
     const currentPatrons = actualMetrics[0]?.activePatrons || 0;
@@ -613,8 +595,8 @@ export class DatabaseStorage implements IStorage {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const [recentRevenue, previousRevenue, newPatronsResult, prevNewPatronsResult] = await Promise.all([
-      db // Query for recent revenue (last 30 days)
+    const [recentRevenue, previousRevenue] = await Promise.all([
+      db
         .select({
           revenue: sql<number>`sum(${revenueData.pledgeSum})`,
           patrons: sql<number>`sum(${revenueData.patronCount})`,
@@ -622,11 +604,11 @@ export class DatabaseStorage implements IStorage {
         .from(revenueData)
         .where(
           and(
-            sql`${revenueData.campaignId} IN ${campaignIdsToQuery}`,
+            sql`${revenueData.campaignId} IN ${campaignIds}`,
             gte(revenueData.date, thirtyDaysAgo)
           )
         ),
-      db // Query for previous revenue (30-60 days ago)
+      db
         .select({
           revenue: sql<number>`sum(${revenueData.pledgeSum})`,
           patrons: sql<number>`sum(${revenueData.patronCount})`,
@@ -634,28 +616,9 @@ export class DatabaseStorage implements IStorage {
         .from(revenueData)
         .where(
           and(
-            sql`${revenueData.campaignId} IN ${campaignIdsToQuery}`,
+            sql`${revenueData.campaignId} IN ${campaignIds}`,
             gte(revenueData.date, sixtyDaysAgo),
             lte(revenueData.date, thirtyDaysAgo)
-          )
-        ),
-      db // Query for new patrons in the current 30-day period
-        .select({ count: sql<number>`count(*)` })
-        .from(patrons)
-        .where(
-          and(
-            sql`${patrons.campaignId} IN ${campaignIdsToQuery}`,
-            gte(patrons.pledgeRelationshipStart, thirtyDaysAgo)
-          )
-        ),
-      db // Query for new patrons in the previous 30-day period (30-60 days ago)
-        .select({ count: sql<number>`count(*)` })
-        .from(patrons)
-        .where(
-          and(
-            sql`${patrons.campaignId} IN ${campaignIdsToQuery}`,
-            gte(patrons.pledgeRelationshipStart, sixtyDaysAgo),
-            lt(patrons.pledgeRelationshipStart, thirtyDaysAgo) // Use lt here to avoid overlap
           )
         ),
     ]);
@@ -677,12 +640,20 @@ export class DatabaseStorage implements IStorage {
       ? ((avgPerPatron - prevAvgPerPatron) / prevAvgPerPatron) * 100 
       : 0;
 
-    const newPatrons = newPatronsResult?.[0]?.count || 0;
-    const prevNewPatrons = prevNewPatronsResult?.[0]?.count || 0;
+    // Count new patrons in last 30 days
+    const [newPatronsResult] = await db
+      .select({
+        count: sql<number>`count(*)`,
+      })
+      .from(patrons)
+      .where(
+        and(
+          sql`${patrons.campaignId} IN ${campaignIds}`,
+          gte(patrons.pledgeRelationshipStart, thirtyDaysAgo)
+        )
+      );
 
-    const newPatronChange = prevNewPatrons > 0
-      ? ((newPatrons - prevNewPatrons) / prevNewPatrons) * 100
-      : (newPatrons > 0 ? 100 : 0); // If prev was 0, any new patrons is 100% increase, else 0
+    const newPatrons = newPatronsResult?.count || 0;
 
     return {
       monthlyRevenue: currentRevenue,
@@ -692,7 +663,7 @@ export class DatabaseStorage implements IStorage {
       avgPerPatron,
       avgChange,
       newPatrons,
-      newPatronChange,
+      newPatronChange: 0, // Would need historical tracking
     };
   }
 
@@ -917,37 +888,6 @@ export class DatabaseStorage implements IStorage {
 
   async deleteWebhook(webhookId: number): Promise<void> {
     await db.delete(webhooks).where(eq(webhooks.id, webhookId));
-  }
-
-  // User settings operations
-  async getUserSettings(userId: string): Promise<UserSettings | null> {
-    const [user] = await db.select({ settings: users.settings }).from(users).where(eq(users.id, userId));
-    if (!user || !user.settings) {
-      // If no settings found, return parsed default settings from Zod schema
-      return userSettingsSchema.parse({}); 
-    }
-    // Ensure settings conform to schema, applying defaults for missing fields
-    return userSettingsSchema.parse(user.settings);
-  }
-
-  async updateUserSettings(userId: string, settingsToUpdate: Partial<UserSettings>): Promise<UserSettings> {
-    // Fetch current settings to merge, ensuring defaults are applied if settings are null
-    const currentSettings = await this.getUserSettings(userId) || userSettingsSchema.parse({});
-    
-    const newSettings = { ...currentSettings, ...settingsToUpdate };
-    // Validate the merged settings before saving
-    const validatedSettings = userSettingsSchema.parse(newSettings);
-
-    const [updatedUser] = await db
-      .update(users)
-      .set({ settings: validatedSettings, updatedAt: new Date() })
-      .where(eq(users.id, userId))
-      .returning({ settings: users.settings });
-
-    if (!updatedUser || !updatedUser.settings) {
-      throw new Error("Failed to update user settings.");
-    }
-    return userSettingsSchema.parse(updatedUser.settings);
   }
 }
 

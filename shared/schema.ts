@@ -33,23 +33,6 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  settings: jsonb("settings").default({ // Default settings structure
-    theme: 'dark',
-    notifications: {
-      email: true,
-      sync: true,
-      revenue: true,
-      newPatrons: true,
-    },
-    privacy: {
-      dataSharing: false,
-      analytics: true,
-    },
-    sync: {
-      autoSync: true,
-      syncFrequency: 'daily',
-    }
-  }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -441,23 +424,3 @@ export type InsertAddress = z.infer<typeof insertAddressSchema>;
 export type Address = typeof addresses.$inferSelect;
 export type InsertBenefit = z.infer<typeof insertBenefitSchema>;
 export type Benefit = typeof benefits.$inferSelect;
-
-// User Settings Type
-export const userSettingsSchema = z.object({
-  theme: z.enum(['light', 'dark', 'system']).default('dark'),
-  notifications: z.object({
-    email: z.boolean().default(true),
-    sync: z.boolean().default(true),
-    revenue: z.boolean().default(true),
-    newPatrons: z.boolean().default(true),
-  }).default({ email: true, sync: true, revenue: true, newPatrons: true }),
-  privacy: z.object({
-    dataSharing: z.boolean().default(false),
-    analytics: z.boolean().default(true),
-  }).default({ dataSharing: false, analytics: true }),
-  sync: z.object({
-    autoSync: z.boolean().default(true),
-    syncFrequency: z.enum(['daily', 'weekly', 'manual']).default('daily'),
-  }).default({ autoSync: true, syncFrequency: 'daily' }),
-});
-export type UserSettings = z.infer<typeof userSettingsSchema>;

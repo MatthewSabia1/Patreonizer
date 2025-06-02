@@ -68,27 +68,12 @@ export function setupPatreonAuth(app: Express) {
     passport.authenticate('patreon', { session: false }),
     async (req: any, res) => {
       try {
-        let { accessToken, refreshToken, expiresAt, scope } = req.user as {
-          accessToken: string;
-          refreshToken: string;
-          expiresAt: Date;
-          scope: string;
-        };
+        const { accessToken, refreshToken, expiresAt, scope } = req.user;
         const userId = req.session.connectingUserId;
 
         if (!userId) {
           return res.redirect('/?error=session_expired');
         }
-
-        // Define onTokenRefresh callback for this scope
-        const onTokenRefresh = async (newTokens: { accessToken: string; refreshToken: string; expiresAt: Date }) => {
-          console.log("Patreon tokens refreshed during OAuth callback flow.");
-          accessToken = newTokens.accessToken;
-          refreshToken = newTokens.refreshToken;
-          expiresAt = newTokens.expiresAt;
-          // Note: We don't have a specific campaignId to update storage here yet.
-          // The refreshed tokens will be used when creating new campaign entries.
-        };
 
         // Verify we have the required scopes
         const requiredScopes = ['identity', 'campaigns', 'campaigns.members'];
@@ -105,8 +90,8 @@ export function setupPatreonAuth(app: Express) {
         }
 
         // Fetch user identity and campaigns from Patreon API
-        const identity = await patreonApi.getCurrentUser(accessToken, refreshToken, onTokenRefresh);
-        const campaignsResponse = await patreonApi.getUserCampaigns(accessToken, refreshToken, onTokenRefresh);
+        const identity = await patreonApi.getCurrentUser(accessToken);
+        const campaignsResponse = await patreonApi.getUserCampaigns(accessToken);
 
         if (!campaignsResponse.campaigns || campaignsResponse.campaigns.length === 0) {
           return res.redirect('/?error=no_campaigns_found');
@@ -146,12 +131,11 @@ export function setupPatreonAuth(app: Express) {
         console.error('Patreon OAuth callback error:', error);
         
         // Handle specific API errors
-        const err = error as Error;
-        if (err.message?.includes('Unauthorized')) {
+        if (error.message?.includes('Unauthorized')) {
           return res.redirect('/?error=invalid_token');
-        } else if (err.message?.includes('Forbidden')) {
+        } else if (error.message?.includes('Forbidden')) {
           return res.redirect('/?error=access_denied');
-        } else if (err.message?.includes('Rate limited')) {
+        } else if (error.message?.includes('Rate limited')) {
           return res.redirect('/?error=rate_limited');
         }
         

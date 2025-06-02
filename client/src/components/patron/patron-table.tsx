@@ -61,7 +61,7 @@ export function PatronTable({ campaigns = [] }: PatronTableProps) {
       limit: pageSize,
     }),
     retry: false,
-    placeholderData: (previousData) => previousData,
+    keepPreviousData: true,
   });
 
   const handleExport = async () => {

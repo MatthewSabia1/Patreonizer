@@ -22,7 +22,7 @@ import { AdvancedAnalytics } from "@/components/dashboard/AdvancedAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RotateCcw, UserPlus, FileText, TrendingUp, Activity } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 
 export default function Dashboard() {
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -77,59 +77,6 @@ export default function Dashboard() {
     queryKey: ["/api/sync/active"],
     refetchInterval: 2000, // Poll every 2 seconds for active syncs
     retry: false,
-  });
-
-  // Transform activity data for the RecentActivity component
-  const transformedActivity = activity.map((item) => {
-    const getActivityIcon = (type: string) => {
-      switch (type) {
-        case 'new_patron':
-          return {
-            icon: UserPlus,
-            iconColor: 'text-green-400',
-            iconBg: 'bg-green-500/20'
-          };
-        case 'new_post':
-          return {
-            icon: FileText,
-            iconColor: 'text-blue-400', 
-            iconBg: 'bg-blue-500/20'
-          };
-        case 'tier_upgrade':
-          return {
-            icon: TrendingUp,
-            iconColor: 'text-purple-400',
-            iconBg: 'bg-purple-500/20'
-          };
-        default:
-          return {
-            icon: Activity,
-            iconColor: 'text-gray-400',
-            iconBg: 'bg-gray-500/20'
-          };
-      }
-    };
-
-    const iconData = getActivityIcon(item.type);
-    const formatTimestamp = (timestamp: string) => {
-      const date = new Date(timestamp);
-      const now = new Date();
-      const diffMs = now.getTime() - date.getTime();
-      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-      
-      if (diffHours < 1) return 'Just now';
-      if (diffHours < 24) return `${diffHours}h ago`;
-      return `${Math.floor(diffHours / 24)}d ago`;
-    };
-
-    return {
-      id: item.id,
-      type: item.type,
-      title: item.title,
-      description: item.description,
-      timestamp: formatTimestamp(item.timestamp),
-      ...iconData
-    };
   });
 
   // Sync mutation
@@ -422,7 +369,7 @@ export default function Dashboard() {
               isMobile ? 'mobile-gap-4' : isTablet ? 'tablet-card-grid' : 'lg:grid-cols-3 gap-8'
             }`}>
               <CampaignTable campaigns={campaigns} isLoading={campaignsLoading} />
-              <RecentActivity activities={transformedActivity} isLoading={activityLoading} />
+              <RecentActivity activities={[]} isLoading={activityLoading} />
             </div>
           </motion.section>
         </div>
