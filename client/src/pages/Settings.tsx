@@ -427,7 +427,7 @@ export default function Settings() {
                                 <Globe className="w-5 h-5 text-primary" />
                               </div>
                               <div>
-                                <p className="font-medium">{campaign.title}</p>
+                                <p className="font-medium">{campaign.creationName || campaign.title}</p>
                                 <p className="text-sm text-muted-foreground">
                                   {campaign.patronCount} patrons • Last sync: {formatDate(campaign.lastSyncAt || campaign.createdAt)}
                                 </p>
