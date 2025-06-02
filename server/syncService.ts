@@ -84,53 +84,50 @@ class SyncService {
         startedAt: new Date(),
       });
 
-      // Check if token needs refresh
-      const now = new Date();
-      let accessToken = campaign.accessToken;
-      
-      if (campaign.tokenExpiresAt && campaign.tokenExpiresAt < now && campaign.refreshToken) {
-        try {
-          const refreshed = await patreonApi.refreshAccessToken(campaign.refreshToken);
-          accessToken = refreshed.accessToken;
-          
-          // Update campaign with new tokens
-          await storage.updateCampaign(campaign.id, {
-            accessToken: refreshed.accessToken,
-            refreshToken: refreshed.refreshToken,
-            tokenExpiresAt: refreshed.expiresAt,
-          });
-        } catch (error) {
-          console.error('Failed to refresh token:', error);
-          throw new Error('Token refresh failed');
-        }
-      }
+      let currentAccessToken = campaign.accessToken;
+      // Store the refresh token in a variable that can be updated by onTokenRefresh
+      let currentRefreshToken = campaign.refreshToken; 
+
+      const onTokenRefresh = async (newTokens: { accessToken: string; refreshToken: string; expiresAt: Date }) => {
+        currentAccessToken = newTokens.accessToken;
+        currentRefreshToken = newTokens.refreshToken; // Update local refresh token as well
+        await storage.updateCampaign(campaign.id, {
+          accessToken: newTokens.accessToken,
+          refreshToken: newTokens.refreshToken,
+          tokenExpiresAt: newTokens.expiresAt,
+        });
+        // Update the campaign object in memory if needed, or refetch
+        campaign.accessToken = newTokens.accessToken;
+        campaign.refreshToken = newTokens.refreshToken;
+        campaign.tokenExpiresAt = newTokens.expiresAt;
+      };
 
       // Get complete campaign data first to update campaign details
-      await this.syncCampaignDetails(campaign, accessToken, syncId);
+      await this.syncCampaignDetails(campaign, currentAccessToken, currentRefreshToken, onTokenRefresh, syncId);
       
       // Sync members/patrons first - this is the most important data
-      await this.syncPatrons(campaign, accessToken, syncId);
+      await this.syncPatrons(campaign, currentAccessToken, currentRefreshToken, onTokenRefresh, syncId);
       
       // Sync posts - another important data source
-      await this.syncPosts(campaign, accessToken, syncId);
+      await this.syncPosts(campaign, currentAccessToken, currentRefreshToken, onTokenRefresh, syncId);
       
       // Try to sync additional data, but don't fail if endpoints are restricted
       try {
-        await this.syncCampaignTiers(campaign, accessToken, syncId);
+        await this.syncCampaignTiers(campaign, currentAccessToken, currentRefreshToken, onTokenRefresh, syncId);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.warn('Campaign tiers sync failed (may not be available):', errorMessage);
       }
       
       try {
-        await this.syncCampaignGoals(campaign, accessToken, syncId);
+        await this.syncCampaignGoals(campaign, currentAccessToken, currentRefreshToken, onTokenRefresh, syncId);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.warn('Campaign goals sync failed (may not be available):', errorMessage);
       }
       
       try {
-        await this.syncCampaignBenefits(campaign, accessToken, syncId);
+        await this.syncCampaignBenefits(campaign, currentAccessToken, currentRefreshToken, onTokenRefresh, syncId);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         console.warn('Campaign benefits sync failed (may not be available):', errorMessage);
@@ -159,7 +156,13 @@ class SyncService {
     }
   }
 
-  private async syncPatrons(campaign: PatreonCampaign, accessToken: string, syncId: number) {
+  private async syncPatrons(
+    campaign: PatreonCampaign, 
+    accessToken: string, 
+    refreshToken: string | null,
+    onTokenRefresh: (newTokens: { accessToken: string; refreshToken: string; expiresAt: Date }) => Promise<void>,
+    syncId: number
+    ) {
     let cursor: string | undefined;
     let totalPatrons = 0;
     let processedPatrons = 0;
@@ -168,6 +171,8 @@ class SyncService {
       const response = await patreonApi.getCampaignMembers(
         accessToken,
         campaign.patreonCampaignId,
+        refreshToken,
+        onTokenRefresh,
         cursor
       );
 
@@ -243,7 +248,13 @@ class SyncService {
     } while (cursor);
   }
 
-  private async syncPosts(campaign: PatreonCampaign, accessToken: string, syncId: number) {
+  private async syncPosts(
+    campaign: PatreonCampaign, 
+    accessToken: string, 
+    refreshToken: string | null,
+    onTokenRefresh: (newTokens: { accessToken: string; refreshToken: string; expiresAt: Date }) => Promise<void>,
+    syncId: number
+    ) {
     let cursor: string | undefined;
     let processedPosts = 0;
 
@@ -251,6 +262,8 @@ class SyncService {
       const response = await patreonApi.getCampaignPosts(
         accessToken,
         campaign.patreonCampaignId,
+        refreshToken,
+        onTokenRefresh,
         cursor
       );
 
@@ -330,9 +343,20 @@ class SyncService {
     await storage.upsertRevenueData(revenueData);
   }
 
-  private async syncCampaignDetails(campaign: PatreonCampaign, accessToken: string, syncId: number) {
+  private async syncCampaignDetails(
+    campaign: PatreonCampaign, 
+    accessToken: string, 
+    refreshToken: string | null,
+    onTokenRefresh: (newTokens: { accessToken: string; refreshToken: string; expiresAt: Date }) => Promise<void>,
+    syncId: number
+    ) {
     try {
-      const response = await patreonApi.getCompleteCampaignData(accessToken, campaign.patreonCampaignId);
+      const response = await patreonApi.getCompleteCampaignData(
+        accessToken, 
+        campaign.patreonCampaignId,
+        refreshToken,
+        onTokenRefresh
+        );
       const campaignData = response.campaign;
 
       // Use vanity URL for page display name, fallback to creation_name
@@ -372,9 +396,20 @@ class SyncService {
     }
   }
 
-  private async syncCampaignTiers(campaign: PatreonCampaign, accessToken: string, syncId: number) {
+  private async syncCampaignTiers(
+    campaign: PatreonCampaign, 
+    accessToken: string, 
+    refreshToken: string | null,
+    onTokenRefresh: (newTokens: { accessToken: string; refreshToken: string; expiresAt: Date }) => Promise<void>,
+    syncId: number
+    ) {
     try {
-      const response = await patreonApi.getCampaignTiers(accessToken, campaign.patreonCampaignId);
+      const response = await patreonApi.getCampaignTiers(
+        accessToken, 
+        campaign.patreonCampaignId,
+        refreshToken,
+        onTokenRefresh
+        );
       const tiers = response.tiers;
 
       for (const tier of tiers) {
@@ -403,9 +438,20 @@ class SyncService {
     }
   }
 
-  private async syncCampaignGoals(campaign: PatreonCampaign, accessToken: string, syncId: number) {
+  private async syncCampaignGoals(
+    campaign: PatreonCampaign, 
+    accessToken: string, 
+    refreshToken: string | null,
+    onTokenRefresh: (newTokens: { accessToken: string; refreshToken: string; expiresAt: Date }) => Promise<void>,
+    syncId: number
+    ) {
     try {
-      const response = await patreonApi.getCampaignGoals(accessToken, campaign.patreonCampaignId);
+      const response = await patreonApi.getCampaignGoals(
+        accessToken, 
+        campaign.patreonCampaignId,
+        refreshToken,
+        onTokenRefresh
+        );
       const goals = response.goals;
 
       for (const goal of goals) {
@@ -427,9 +473,20 @@ class SyncService {
     }
   }
 
-  private async syncCampaignBenefits(campaign: PatreonCampaign, accessToken: string, syncId: number) {
+  private async syncCampaignBenefits(
+    campaign: PatreonCampaign, 
+    accessToken: string, 
+    refreshToken: string | null,
+    onTokenRefresh: (newTokens: { accessToken: string; refreshToken: string; expiresAt: Date }) => Promise<void>,
+    syncId: number
+    ) {
     try {
-      const response = await patreonApi.getCampaignBenefits(accessToken, campaign.patreonCampaignId);
+      const response = await patreonApi.getCampaignBenefits(
+        accessToken, 
+        campaign.patreonCampaignId,
+        refreshToken,
+        onTokenRefresh
+        );
       const benefits = response.benefits;
 
       for (const benefit of benefits) {

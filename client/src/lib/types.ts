@@ -13,6 +13,7 @@ export interface PatreonCampaign {
   id: number;
   userId: string;
   patreonCampaignId: string;
+  creationName: string;
   title: string;
   summary: string | null;
   imageUrl: string | null;
