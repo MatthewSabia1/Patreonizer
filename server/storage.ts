@@ -365,7 +365,33 @@ export class DatabaseStorage implements IStorage {
     const [postsList, [{ total }]] = await Promise.all([
       db
         .select({
-          ...posts,
+          id: posts.id,
+          campaignId: posts.campaignId,
+          patreonPostId: posts.patreonPostId,
+          title: posts.title,
+          content: posts.content,
+          url: posts.url,
+          patreonUrl: posts.patreonUrl,
+          embedData: posts.embedData,
+          embedUrl: posts.embedUrl,
+          imageUrl: posts.imageUrl,
+          postFile: posts.postFile,
+          postMetadata: posts.postMetadata,
+          isPublic: posts.isPublic,
+          isPaid: posts.isPaid,
+          likeCount: posts.likeCount,
+          commentCount: posts.commentCount,
+          appId: posts.appId,
+          appStatus: posts.appStatus,
+          publishedAt: posts.publishedAt,
+          editedAt: posts.editedAt,
+          patreonCreatedAt: posts.patreonCreatedAt,
+          patreonUpdatedAt: posts.patreonUpdatedAt,
+          attachments: posts.attachments,
+          userDefinedTags: posts.userDefinedTags,
+          poll: posts.poll,
+          createdAt: posts.createdAt,
+          updatedAt: posts.updatedAt,
           campaignTitle: patreonCampaigns.title,
         })
         .from(posts)
@@ -382,7 +408,7 @@ export class DatabaseStorage implements IStorage {
     ]);
 
     return {
-      posts: postsList as (Post & { campaignTitle: string | null })[],
+      posts: postsList,
       total: total || 0,
     };
   }
