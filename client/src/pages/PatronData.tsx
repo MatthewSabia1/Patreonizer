@@ -292,12 +292,12 @@ export default function PatronData() {
                 <div className="flex items-center space-x-2">
                   <DollarSign className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-green-500`} />
                   <div>
-                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>Current Page Revenue</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>Active Patrons Revenue</p>
                     <p className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>
                       {formatCurrency(
                         patrons
                           .filter(patron => patron.patronStatus === 'active_patron')
-                          .reduce((sum, patron) => sum + patron.currentlyEntitledAmountCents, 0)
+                          .reduce((sum, patron) => sum + (patron.currentlyEntitledAmountCents || 0), 0)
                       )}
                     </p>
                   </div>
@@ -310,17 +310,13 @@ export default function PatronData() {
                 <div className="flex items-center space-x-2">
                   <Calendar className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500`} />
                   <div>
-                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>Current Page Avg</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>Avg Per Active Patron</p>
                     <p className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>
-                      {patrons.filter(p => p.patronStatus === 'active_patron').length > 0 
-                        ? formatCurrency(
-                            patrons
-                              .filter(patron => patron.patronStatus === 'active_patron')
-                              .reduce((sum, patron) => sum + patron.currentlyEntitledAmountCents, 0) / 
-                            patrons.filter(p => p.patronStatus === 'active_patron').length
-                          )
-                        : formatCurrency(0)
-                      }
+                      {(() => {
+                        const activePatrons = patrons.filter(p => p.patronStatus === 'active_patron');
+                        const totalRevenue = activePatrons.reduce((sum, patron) => sum + (patron.currentlyEntitledAmountCents || 0), 0);
+                        return activePatrons.length > 0 ? formatCurrency(totalRevenue / activePatrons.length) : formatCurrency(0);
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -332,9 +328,9 @@ export default function PatronData() {
                 <div className="flex items-center space-x-2">
                   <Mail className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-accent`} />
                   <div>
-                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>With Email</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>With Email Address</p>
                     <p className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>
-                      {patrons.filter(p => p.email).length}
+                      {patrons.filter(p => p.email && p.email.trim() !== '').length}
                     </p>
                   </div>
                 </div>

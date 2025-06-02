@@ -46,6 +46,8 @@ export function AdvancedAnalytics({ campaigns = [], revenueData = [], patronData
   const [timeRange, setTimeRange] = useState("30");
   const [selectedMetric, setSelectedMetric] = useState<"revenue" | "patrons" | "growth">("revenue");
 
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -108,8 +110,6 @@ export function AdvancedAnalytics({ campaigns = [], revenueData = [], patronData
       fill: COLORS[index % COLORS.length],
     };
   }).filter(item => item.value > 0) : [];
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
   const renderChart = () => {
     const chartProps = {
