@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useScreenSize } from "@/hooks/use-mobile";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
 import { Sidebar } from "@/components/dashboard/Sidebar";
@@ -67,6 +68,7 @@ export default function Posts() {
   const [pageSize] = useState(20);
 
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isMobile, isTablet, isSmallMobile } = useScreenSize();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -146,26 +148,27 @@ export default function Posts() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar onConnectPatreon={() => setShowConnectModal(true)} />
+      {!isMobile && <Sidebar onConnectPatreon={() => setShowConnectModal(true)} />}
+      {isMobile && <Sidebar onConnectPatreon={() => setShowConnectModal(true)} />}
       
-      <main className="flex-1 overflow-auto">
+      <main className={`flex-1 overflow-auto ${isMobile ? 'pt-16' : ''}`}>
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-card border-b border-border p-6"
+          className={`bg-card border-b border-border ${isMobile ? 'p-4' : 'p-6'}`}
         >
-          <div className="flex items-center justify-between">
+          <div className={`flex ${isMobile ? 'flex-col space-y-4' : 'items-center justify-between'}`}>
             <div>
-              <h1 className="text-2xl font-bold">Post Analytics</h1>
-              <p className="text-muted-foreground">
+              <h1 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-bold`}>Post Analytics</h1>
+              <p className={`text-muted-foreground ${isMobile ? 'text-sm' : ''}`}>
                 Analyze your content performance and engagement metrics
               </p>
             </div>
             
             <Button
               onClick={() => setShowConnectModal(true)}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
+              className={`bg-primary hover:bg-primary/90 text-primary-foreground ${isMobile ? 'w-full' : ''}`}
             >
               <FileText className="w-4 h-4 mr-2" />
               View Latest Posts
@@ -174,57 +177,57 @@ export default function Posts() {
         </motion.header>
 
         {/* Content */}
-        <div className="p-6">
+        <div className={`${isMobile ? 'p-4' : 'p-6'}`}>
           {/* Analytics Cards */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6"
+            className={`grid ${isSmallMobile ? 'grid-cols-1' : isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-4 md:gap-6 mb-6`}
           >
             <Card className="bg-card border-border">
-              <CardContent className="p-6">
+              <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
                 <div className="flex items-center space-x-2">
-                  <FileText className="w-5 h-5 text-primary" />
+                  <FileText className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-primary`} />
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Posts</p>
-                    <p className="text-2xl font-bold">{totalPosts.toLocaleString()}</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>Total Posts</p>
+                    <p className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>{totalPosts.toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card className="bg-card border-border">
-              <CardContent className="p-6">
+              <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
                 <div className="flex items-center space-x-2">
-                  <Heart className="w-5 h-5 text-red-500" />
+                  <Heart className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-red-500`} />
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Likes</p>
-                    <p className="text-2xl font-bold">{totalLikes.toLocaleString()}</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>Total Likes</p>
+                    <p className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>{totalLikes.toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card className="bg-card border-border">
-              <CardContent className="p-6">
+              <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
                 <div className="flex items-center space-x-2">
-                  <MessageCircle className="w-5 h-5 text-blue-500" />
+                  <MessageCircle className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500`} />
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Comments</p>
-                    <p className="text-2xl font-bold">{totalComments.toLocaleString()}</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>Total Comments</p>
+                    <p className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>{totalComments.toLocaleString()}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
             <Card className="bg-card border-border">
-              <CardContent className="p-6">
+              <CardContent className={`${isMobile ? 'p-4' : 'p-6'}`}>
                 <div className="flex items-center space-x-2">
-                  <TrendingUp className="w-5 h-5 text-green-500" />
+                  <TrendingUp className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-green-500`} />
                   <div>
-                    <p className="text-sm text-muted-foreground">Avg. Engagement</p>
-                    <p className="text-2xl font-bold">{Math.round(avgEngagement)}</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>Avg. Engagement</p>
+                    <p className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>{Math.round(avgEngagement)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -240,12 +243,12 @@ export default function Posts() {
           >
             <Card className="bg-card border-border">
               <CardContent className="p-4">
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className={`flex ${isMobile ? 'flex-col' : 'flex-col md:flex-row'} gap-4`}>
                   <div className="flex-1">
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                       <Input
-                        placeholder="Search posts by title..."
+                        placeholder={isMobile ? "Search posts..." : "Search posts by title..."}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10"
@@ -253,31 +256,33 @@ export default function Posts() {
                     </div>
                   </div>
                   
-                  <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Campaigns</SelectItem>
-                      {campaigns.map((campaign: any) => (
-                        <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                          {campaign.title}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className={`flex ${isMobile ? 'flex-col' : 'flex-row'} gap-4`}>
+                    <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+                      <SelectTrigger className={`${isMobile ? 'w-full' : 'w-48'}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Campaigns</SelectItem>
+                        {campaigns.map((campaign: any) => (
+                          <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                            {campaign.title}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
 
-                  <Select value={postType} onValueChange={setPostType}>
-                    <SelectTrigger className="w-40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Types</SelectItem>
-                      <SelectItem value="public">Public</SelectItem>
-                      <SelectItem value="paid">Paid</SelectItem>
-                      <SelectItem value="patron">Patron Only</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    <Select value={postType} onValueChange={setPostType}>
+                      <SelectTrigger className={`${isMobile ? 'w-full' : 'w-40'}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="public">Public</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                        <SelectItem value="patron">Patron Only</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </CardContent>
             </Card>
