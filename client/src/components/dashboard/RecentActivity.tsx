@@ -86,7 +86,7 @@ export function RecentActivity({ activities = [], isLoading }: RecentActivityPro
           ) : (
             <div className="space-y-2">
               {activities.slice(0, 5).map((activity, index) => {
-                const Icon = activity.icon;
+                const Icon = activity.icon || Users;
                 
                 return (
                   <motion.div
