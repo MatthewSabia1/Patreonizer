@@ -78,13 +78,13 @@ export default function ConnectedPages() {
   }, [isAuthenticated, authLoading, toast]);
 
   // Fetch campaigns
-  const { data: campaigns = [], isLoading: campaignsLoading } = useQuery({
+  const { data: campaigns = [], isLoading: campaignsLoading } = useQuery<Campaign[]>({
     queryKey: ["/api/campaigns"],
     retry: false,
   });
 
   // Fetch active syncs
-  const { data: activeSyncs = [] } = useQuery({
+  const { data: activeSyncs = [] } = useQuery<any[]>({
     queryKey: ["/api/sync/active"],
     refetchInterval: 2000,
     retry: false,

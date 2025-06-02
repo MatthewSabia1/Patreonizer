@@ -61,17 +61,27 @@ export function AdvancedAnalytics({ campaigns = [], revenueData = [], patronData
   // Use real revenue data only
   const analyticsData = revenueData;
 
-  // Calculate growth metrics
-  const currentPeriod = analyticsData.slice(-7);
-  const previousPeriod = analyticsData.slice(-14, -7);
-  
-  const currentRevenue = currentPeriod.reduce((sum, item) => sum + item.revenue, 0);
-  const previousRevenue = previousPeriod.reduce((sum, item) => sum + item.revenue, 0);
-  const revenueGrowth = previousRevenue > 0 ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 : 0;
+  // Calculate growth metrics only if we have data
+  const hasData = analyticsData.length > 0;
+  let currentRevenue = 0;
+  let previousRevenue = 0;
+  let revenueGrowth = 0;
+  let currentPatrons = 0;
+  let previousPatrons = 0;
+  let patronGrowth = 0;
 
-  const currentPatrons = currentPeriod[currentPeriod.length - 1]?.patrons || 0;
-  const previousPatrons = previousPeriod[previousPeriod.length - 1]?.patrons || 0;
-  const patronGrowth = previousPatrons > 0 ? ((currentPatrons - previousPatrons) / previousPatrons) * 100 : 0;
+  if (hasData && analyticsData.length >= 14) {
+    const currentPeriod = analyticsData.slice(-7);
+    const previousPeriod = analyticsData.slice(-14, -7);
+    
+    currentRevenue = currentPeriod.reduce((sum, item) => sum + parseFloat(item.pledgeSum || '0'), 0);
+    previousRevenue = previousPeriod.reduce((sum, item) => sum + parseFloat(item.pledgeSum || '0'), 0);
+    revenueGrowth = previousRevenue > 0 ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 : 0;
+
+    currentPatrons = currentPeriod[currentPeriod.length - 1]?.patronCount || 0;
+    previousPatrons = previousPeriod[previousPeriod.length - 1]?.patronCount || 0;
+    patronGrowth = previousPatrons > 0 ? ((currentPatrons - previousPatrons) / previousPatrons) * 100 : 0;
+  }
 
   // Campaign performance data for pie chart
   const campaignPerformance = campaigns.length > 0 ? campaigns.map(campaign => ({
@@ -311,7 +321,7 @@ export function AdvancedAnalytics({ campaigns = [], revenueData = [], patronData
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Target Progress</p>
-                  <p className="text-2xl font-bold">73%</p>
+                  <p className="text-2xl font-bold">—</p>
                 </div>
                 <Target className="w-8 h-8 text-orange-500" />
               </div>
