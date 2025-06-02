@@ -307,7 +307,7 @@ export default function ConnectedPages() {
                   <div>
                     <p className="text-sm text-muted-foreground">Total Patrons</p>
                     <p className="text-2xl font-bold">
-                      {campaigns.reduce((sum: number, campaign: Campaign) => sum + campaign.patronCount, 0)}
+                      {campaigns.reduce((sum: number, campaign: Campaign) => sum + (campaign.actualPatronCount || campaign.patronCount), 0)}
                     </p>
                   </div>
                 </div>

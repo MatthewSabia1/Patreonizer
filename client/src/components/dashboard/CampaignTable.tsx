@@ -120,9 +120,8 @@ export function CampaignTable({ campaigns = [], isLoading }: CampaignTableProps)
                       <td className="py-4 font-medium">{(campaign.actualPatronCount || campaign.patronCount).toLocaleString()}</td>
                       <td className="py-4 font-medium">{formatCurrency(campaign.actualMonthlyRevenue || campaign.pledgeSum)}</td>
                       <td className="py-4">
-                        <div className="flex items-center space-x-1">
-                          <TrendingUp className="w-4 h-4 text-green-500" />
-                          <span className="text-green-500 text-sm">+8.2%</span>
+                        <div className="flex items-center space-x-1 text-muted-foreground">
+                          <span className="text-sm">—</span>
                         </div>
                       </td>
                       <td className="py-4">

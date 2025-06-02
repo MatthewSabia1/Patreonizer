@@ -58,14 +58,8 @@ export function AdvancedAnalytics({ campaigns = [], revenueData = [], patronData
     return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
   };
 
-  // Generate sample analytics data if none provided
-  const analyticsData = revenueData.length > 0 ? revenueData : Array.from({ length: 30 }, (_, i) => ({
-    date: new Date(Date.now() - (29 - i) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-    revenue: Math.floor(Math.random() * 1000) + 500,
-    patrons: Math.floor(Math.random() * 50) + 20,
-    newPatrons: Math.floor(Math.random() * 10),
-    lostPatrons: Math.floor(Math.random() * 5),
-  }));
+  // Use real revenue data only
+  const analyticsData = revenueData;
 
   // Calculate growth metrics
   const currentPeriod = analyticsData.slice(-7);

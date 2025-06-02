@@ -144,6 +144,18 @@ export default function Settings() {
     retry: false,
   });
 
+  // Fetch patron count for data overview
+  const { data: patronsData } = useQuery<{ total: number }>({
+    queryKey: ["/api/patrons", "all", 1, 1], // Just get total count
+    retry: false,
+  });
+
+  // Fetch post count for data overview
+  const { data: postsData } = useQuery<{ total: number }>({
+    queryKey: ["/api/posts", "all", 1, 1], // Just get total count
+    retry: false,
+  });
+
   // Save settings mutation
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: AppSettings) => {
@@ -721,11 +733,11 @@ export default function Settings() {
                           <p className="text-sm text-muted-foreground">Campaigns</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-2xl font-bold">—</p>
+                          <p className="text-2xl font-bold">{patronsData?.total || 0}</p>
                           <p className="text-sm text-muted-foreground">Patrons</p>
                         </div>
                         <div className="text-center">
-                          <p className="text-2xl font-bold">—</p>
+                          <p className="text-2xl font-bold">{postsData?.total || 0}</p>
                           <p className="text-sm text-muted-foreground">Posts</p>
                         </div>
                         <div className="text-center">

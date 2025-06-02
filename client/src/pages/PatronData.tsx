@@ -292,7 +292,7 @@ export default function PatronData() {
                 <div className="flex items-center space-x-2">
                   <DollarSign className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-green-500`} />
                   <div>
-                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>Total Revenue</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>Current Page Revenue</p>
                     <p className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>
                       {formatCurrency(
                         patrons
@@ -310,7 +310,7 @@ export default function PatronData() {
                 <div className="flex items-center space-x-2">
                   <Calendar className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} text-blue-500`} />
                   <div>
-                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>Avg. Support</p>
+                    <p className={`${isMobile ? 'text-xs' : 'text-sm'} text-muted-foreground`}>Current Page Avg</p>
                     <p className={`${isMobile ? 'text-lg' : 'text-2xl'} font-bold`}>
                       {patrons.filter(p => p.patronStatus === 'active_patron').length > 0 
                         ? formatCurrency(
