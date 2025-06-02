@@ -42,7 +42,8 @@ export const patreonCampaigns = pgTable("patreon_campaigns", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   patreonCampaignId: varchar("patreon_campaign_id").notNull().unique(),
-  title: varchar("title").notNull(),
+  creationName: varchar("creation_name").notNull(), // The actual Patreon page name
+  title: varchar("title").notNull(), // Campaign title/summary content
   summary: text("summary"),
   imageUrl: varchar("image_url"),
   vanityUrl: varchar("vanity_url"),

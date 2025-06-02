@@ -102,6 +102,7 @@ export function setupPatreonAuth(app: Express) {
           const campaign = await storage.createCampaign({
             userId,
             patreonCampaignId: campaignData.id,
+            creationName: campaignData.attributes.creation_name || 'Untitled Campaign',
             title: campaignData.attributes.creation_name || 'Untitled Campaign',
             summary: campaignData.attributes.summary || null,
             imageUrl: campaignData.attributes.image_url || null,
