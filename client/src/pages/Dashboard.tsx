@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { useScreenSize } from "@/hooks/use-mobile";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { apiRequest } from "@/lib/queryClient";
 import type { DashboardMetrics, ActivityItem, SyncStatus, RevenueData, PatreonCampaign } from "@/lib/types";
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [timeRange, setTimeRange] = useState("30");
   
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isMobile, isTablet, isSmallMobile } = useScreenSize();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -198,23 +200,24 @@ export default function Dashboard() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar onConnectPatreon={() => setShowConnectModal(true)} />
+      {!isMobile && <Sidebar onConnectPatreon={() => setShowConnectModal(true)} />}
+      {isMobile && <Sidebar onConnectPatreon={() => setShowConnectModal(true)} />}
       
-      <main className="flex-1 overflow-auto scrollbar-custom">
+      <main className={`flex-1 overflow-auto scrollbar-custom ${isMobile ? 'pt-16' : ''}`}>
         {/* Header */}
         <motion.header
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="bg-card/95 backdrop-glass border-b border-border/50 p-6 shadow-card-soft"
+          className="bg-card/95 backdrop-glass border-b border-border/50 p-4 md:p-6 shadow-card-soft"
         >
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col space-y-4 md:flex-row md:items-center md:justify-between md:space-y-0">
             <motion.div
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text text-transparent tracking-tight">
+              <h1 className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text text-transparent tracking-tight`}>
                 Dashboard Overview
               </h1>
               <p className="text-muted-foreground/70 font-medium mt-1">Track your Patreon campaigns performance</p>
@@ -224,45 +227,50 @@ export default function Dashboard() {
               initial={{ opacity: 0, x: 8 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.15, duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="flex items-center space-x-4"
+              className="flex flex-col space-y-3 md:flex-row md:items-center md:space-x-4 md:space-y-0"
             >
-              <NotificationCenter />
+              {!isSmallMobile && <NotificationCenter />}
               
-              <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
-                <SelectTrigger className="w-44 input-enhanced border-border/60 focus:border-accent/50">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="glass-card">
-                  <SelectItem value="all">All Campaigns</SelectItem>
-                  {campaigns.map((campaign) => (
-                    <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                      {campaign.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex flex-col space-y-3 sm:flex-row sm:space-x-3 sm:space-y-0">
+                <Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+                  <SelectTrigger className={`${isMobile ? 'w-full' : 'w-44'} input-enhanced border-border/60 focus:border-accent/50`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="glass-card">
+                    <SelectItem value="all">All Campaigns</SelectItem>
+                    {campaigns.map((campaign) => (
+                      <SelectItem key={campaign.id} value={campaign.id.toString()}>
+                        {campaign.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
 
-              <Select value={timeRange} onValueChange={setTimeRange}>
-                <SelectTrigger className="w-36 input-enhanced border-border/60 focus:border-accent/50">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="glass-card">
-                  <SelectItem value="7">Last 7 days</SelectItem>
-                  <SelectItem value="30">Last 30 days</SelectItem>
-                  <SelectItem value="90">Last 90 days</SelectItem>
-                  <SelectItem value="365">This year</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground/80 bg-muted/20 px-3 py-2 rounded-lg border border-border/20 backdrop-blur-sm">
-                <div className="w-2 h-2 bg-green-400 rounded-full status-dot status-success animate-pulse" />
-                <span className="font-medium">Synced 2 min ago</span>
+                <Select value={timeRange} onValueChange={setTimeRange}>
+                  <SelectTrigger className={`${isMobile ? 'w-full' : 'w-36'} input-enhanced border-border/60 focus:border-accent/50`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="glass-card">
+                    <SelectItem value="7">Last 7 days</SelectItem>
+                    <SelectItem value="30">Last 30 days</SelectItem>
+                    <SelectItem value="90">Last 90 days</SelectItem>
+                    <SelectItem value="365">This year</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              {!isMobile && (
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground/80 bg-muted/20 px-3 py-2 rounded-lg border border-border/20 backdrop-blur-sm">
+                  <div className="w-2 h-2 bg-green-400 rounded-full status-dot status-success animate-pulse" />
+                  <span className="font-medium">Synced 2 min ago</span>
+                </div>
+              )}
 
               <Button
                 onClick={handleSyncAll}
                 disabled={syncMutation.isPending}
-                className="bg-gradient-to-r from-accent to-accent/90 hover:from-accent/90 hover:to-accent/80 text-accent-foreground btn-glow transition-all duration-300 shadow-lg hover:shadow-glow border-0"
+                className={`${isMobile ? 'w-full' : ''} bg-gradient-to-r from-accent to-accent/90 hover:from-accent/90 hover:to-accent/80 text-accent-foreground btn-glow transition-all duration-300 shadow-lg hover:shadow-glow border-0`}
+                size={isMobile ? "default" : "default"}
               >
                 <RotateCcw className={`w-4 h-4 mr-2 ${syncMutation.isPending ? 'animate-spin' : ''}`} />
                 {syncMutation.isPending ? 'Syncing...' : 'Sync Now'}
@@ -272,7 +280,7 @@ export default function Dashboard() {
         </motion.header>
 
         {/* Dashboard Content */}
-        <div className="p-8 space-y-8 page-transition">
+        <div className={`${isMobile ? 'p-4' : 'p-8'} space-y-6 md:space-y-8 page-transition`}>
           {/* Key Metrics */}
           <motion.section
             initial={{ opacity: 0, y: 16 }}
@@ -325,7 +333,7 @@ export default function Dashboard() {
             transition={{ delay: 0.4, duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="pb-8"
           >
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className={`grid grid-cols-1 ${isMobile ? 'gap-6' : 'lg:grid-cols-3 gap-8'}`}>
               <CampaignTable campaigns={campaigns} isLoading={campaignsLoading} />
               <RecentActivity activities={[]} isLoading={activityLoading} />
             </div>

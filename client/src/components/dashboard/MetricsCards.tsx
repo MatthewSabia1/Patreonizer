@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { DollarSign, Users, HandHeart, UserPlus, TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useScreenSize } from "@/hooks/use-mobile";
 
 import type { DashboardMetrics } from "@/lib/types";
 
@@ -10,6 +11,8 @@ interface MetricsCardsProps {
 }
 
 export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
+  const { isMobile, isSmallMobile } = useScreenSize();
+  
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -55,7 +58,7 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className={`grid ${isSmallMobile ? 'grid-cols-1' : isMobile ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 md:grid-cols-3'} gap-4 md:gap-6`}>
       {metrics.map((metric, index) => {
         const Icon = metric.icon;
         const isPositive = metric.change >= 0;
@@ -77,25 +80,25 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
             }}
           >
             <Card className="card-enhanced overflow-hidden border-border/50 backdrop-blur-sm">
-              <CardContent className="p-6 relative">
-                <div className="space-y-4">
+              <CardContent className={`${isMobile ? 'p-4' : 'p-6'} relative`}>
+                <div className={`space-y-${isMobile ? '3' : '4'}`}>
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium text-muted-foreground/80 uppercase tracking-wider">
+                    <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-muted-foreground/80 uppercase tracking-wider`}>
                       {metric.title}
                     </h3>
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${metric.bgColor} shadow-lg transition-all duration-200 hover:scale-105 ring-1 ring-white/5`}>
-                      <Icon className={`w-6 h-6 ${metric.iconColor} drop-shadow-sm`} />
+                    <div className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} rounded-xl flex items-center justify-center ${metric.bgColor} shadow-lg transition-all duration-200 hover:scale-105 ring-1 ring-white/5`}>
+                      <Icon className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} ${metric.iconColor} drop-shadow-sm`} />
                     </div>
                   </div>
                   
                   {isLoading ? (
                     <div className="space-y-3">
-                      <div className="h-9 w-36 bg-muted/50 animate-pulse rounded-lg" />
-                      <div className="h-5 w-28 bg-muted/30 animate-pulse rounded-md" />
+                      <div className={`${isMobile ? 'h-7 w-28' : 'h-9 w-36'} bg-muted/50 animate-pulse rounded-lg`} />
+                      <div className={`${isMobile ? 'h-4 w-20' : 'h-5 w-28'} bg-muted/30 animate-pulse rounded-md`} />
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      <div className={`text-3xl font-bold ${metric.color} tracking-tight`}>
+                      <div className={`${isMobile ? 'text-2xl' : 'text-3xl'} font-bold ${metric.color} tracking-tight`}>
                         {metric.value}
                       </div>
                       <div className="flex items-center space-x-2">
@@ -105,7 +108,9 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
                             {formatPercentage(metric.change)}
                           </span>
                         </div>
-                        <span className="text-muted-foreground/70 text-xs">from last month</span>
+                        <span className={`text-muted-foreground/70 ${isMobile ? 'text-xs' : 'text-xs'} ${isSmallMobile ? 'hidden' : ''}`}>
+                          from last month
+                        </span>
                       </div>
                     </div>
                   )}

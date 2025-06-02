@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useScreenSize } from "@/hooks/use-mobile";
 import { ConnectPatreonModal } from "@/components/dashboard/ConnectPatreonModal";
 import { 
   ChartArea, 
@@ -19,6 +20,7 @@ import { useAuth } from "@/hooks/useAuth";
 export default function Landing() {
   const [showConnectModal, setShowConnectModal] = useState(false);
   const { isAuthenticated, isLoading } = useAuth();
+  const { isMobile, isSmallMobile } = useScreenSize();
   const { toast } = useToast();
 
   useEffect(() => {
