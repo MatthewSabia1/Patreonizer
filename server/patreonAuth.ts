@@ -99,15 +99,9 @@ export function setupPatreonAuth(app: Express) {
 
         // Store each campaign with authentic Patreon data
         for (const campaignData of campaignsResponse.campaigns) {
-          // Find the creator information from included data
-          const creator = campaignsResponse.included?.find((item: any) => 
-            item.type === 'user' && item.id === campaignData.relationships?.creator?.data?.id
-          );
-          
-          // Use creator's full_name or vanity for the page display name, fallback to vanity URL
-          const pageDisplayName = creator?.attributes?.full_name || 
-                                creator?.attributes?.vanity || 
-                                campaignData.attributes?.vanity || 
+          // Use the proper field priority for page display name
+          const pageDisplayName = campaignData.attributes?.display_name || 
+                                campaignData.attributes?.name || 
                                 campaignData.attributes?.creation_name || 
                                 'Untitled Campaign';
           
@@ -115,7 +109,7 @@ export function setupPatreonAuth(app: Express) {
             userId,
             patreonCampaignId: campaignData.id,
             creationName: pageDisplayName,
-            title: campaignData.attributes.creation_name || 'Untitled Campaign',
+            title: campaignData.attributes?.title || campaignData.attributes?.creation_name || 'Untitled Campaign',
             summary: campaignData.attributes.summary || null,
             imageUrl: campaignData.attributes.image_url || null,
             vanityUrl: campaignData.attributes.vanity || null,

@@ -334,21 +334,17 @@ class SyncService {
     try {
       const response = await patreonApi.getCompleteCampaignData(accessToken, campaign.patreonCampaignId);
       const campaignData = response.campaign;
-      
-      // Get creator information for the actual page name
-      const creatorResponse = await patreonApi.getCampaignCreator(accessToken, campaign.patreonCampaignId);
-      const creator = creatorResponse.included?.find((item: any) => item.type === 'user');
-      
-      // Use creator's full_name or vanity for the page display name, fallback to vanity URL
-      const pageDisplayName = creator?.attributes?.full_name || 
-                            creator?.attributes?.vanity || 
-                            campaignData.attributes?.vanity || 
-                            campaignData.attributes?.creation_name;
+
+      // Use the proper field priority for page display name
+      const pageDisplayName = campaignData.attributes?.display_name || 
+                            campaignData.attributes?.name || 
+                            campaignData.attributes?.creation_name || 
+                            campaign.creationName;
 
       // Update campaign with comprehensive data
       await storage.updateCampaign(campaign.id, {
-        creationName: pageDisplayName || campaign.creationName,
-        title: campaignData.attributes?.creation_name || campaign.title,
+        creationName: pageDisplayName,
+        title: campaignData.attributes?.title || campaignData.attributes?.creation_name || campaign.title,
         summary: campaignData.attributes?.summary || campaign.summary,
         imageUrl: campaignData.attributes?.image_url || campaign.imageUrl,
         vanityUrl: campaignData.attributes?.vanity || campaign.vanityUrl,
