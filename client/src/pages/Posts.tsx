@@ -271,7 +271,7 @@ export default function Posts() {
                         <SelectItem value="all">All Campaigns</SelectItem>
                         {campaigns.map((campaign: any) => (
                           <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                            {campaign.title}
+                            {campaign.creationName || campaign.title}
                           </SelectItem>
                         ))}
                       </SelectContent>

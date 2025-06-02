@@ -168,6 +168,16 @@ export default function ConnectedPages() {
     return new Date(dateString).toLocaleDateString();
   };
 
+  const cleanSummary = (html: string) => {
+    if (!html) return '';
+    // Remove HTML tags and decode entities
+    const withoutTags = html.replace(/<[^>]*>/g, ' ');
+    // Replace multiple spaces with single space
+    const cleaned = withoutTags.replace(/\s+/g, ' ').trim();
+    // Limit length
+    return cleaned.length > 150 ? cleaned.slice(0, 150) + '...' : cleaned;
+  };
+
   const getSyncStatus = (campaignId: number) => {
     const sync = activeSyncs.find((s: any) => s.campaignId === campaignId);
     if (!sync) return null;
@@ -403,7 +413,7 @@ export default function ConnectedPages() {
                       <CardContent className="space-y-4">
                         {campaign.summary && (
                           <p className="text-sm text-muted-foreground line-clamp-2">
-                            {campaign.summary.replace(/<[^>]*>/g, '').slice(0, 150) + (campaign.summary.length > 150 ? '...' : '')}
+                            {cleanSummary(campaign.summary)}
                           </p>
                         )}
 

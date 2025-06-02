@@ -90,7 +90,7 @@ export function RevenueChart({ revenueData = [], patronData = [], campaigns = []
                   <SelectItem value="all">All Campaigns</SelectItem>
                   {campaigns.map((campaign) => (
                     <SelectItem key={campaign.id} value={campaign.id.toString()}>
-                      {campaign.title}
+                      {campaign.creationName || campaign.title}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -182,7 +182,7 @@ export function RevenueChart({ revenueData = [], patronData = [], campaigns = []
                       className="space-y-2"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{campaign.title}</span>
+                        <span className="text-sm font-medium">{campaign.creationName || campaign.title}</span>
                         <span className="text-sm font-bold">
                           {formatCurrency(actualRevenue)}
                         </span>

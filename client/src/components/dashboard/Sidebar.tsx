@@ -176,7 +176,7 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
             >
               <div className="w-2 h-2 bg-green-400 rounded-full status-dot status-success animate-pulse" />
               <span className="text-xs font-medium text-sidebar-foreground/90 truncate">
-                {campaign.title}
+                {campaign.creationName || campaign.title}
               </span>
             </motion.div>
           ))}
