@@ -14,22 +14,42 @@ import type {
 class SyncService {
   private activeSyncs = new Map<number, boolean>();
 
-  async startSync(userId: string, campaignId: number, syncType: 'initial' | 'incremental' | 'full') {
+  async startSync(userId: string, campaignId: number | undefined, syncType: 'initial' | 'incremental' | 'full') {
     try {
-      // Check if sync is already running for this campaign
-      if (this.activeSyncs.get(campaignId)) {
-        throw new Error('Sync already in progress for this campaign');
-      }
+      let campaign: PatreonCampaign;
+      let actualCampaignId: number;
+      
+      if (campaignId) {
+        // Check if sync is already running for this specific campaign
+        if (this.activeSyncs.get(campaignId)) {
+          throw new Error('Sync already in progress for this campaign');
+        }
 
-      // Get campaign details
-      const campaign = await storage.getCampaignById(campaignId);
-      if (!campaign || campaign.userId !== userId) {
-        throw new Error('Campaign not found or access denied');
+        // Get specific campaign details
+        const foundCampaign = await storage.getCampaignById(campaignId);
+        if (!foundCampaign || foundCampaign.userId !== userId) {
+          throw new Error('Campaign not found or access denied');
+        }
+        campaign = foundCampaign;
+        actualCampaignId = campaignId;
+      } else {
+        // Get user's first campaign if no specific campaign ID provided
+        const userCampaigns = await storage.getUserCampaigns(userId);
+        if (userCampaigns.length === 0) {
+          throw new Error('No campaigns found for user');
+        }
+        campaign = userCampaigns[0];
+        actualCampaignId = campaign.id;
+        
+        // Check if sync is already running for this campaign
+        if (this.activeSyncs.get(actualCampaignId)) {
+          throw new Error('Sync already in progress for this campaign');
+        }
       }
 
       // Create sync status record
       const syncStatus = await storage.createSyncStatus({
-        campaignId,
+        campaignId: actualCampaignId,
         syncType,
         status: 'pending',
         progress: 0,
@@ -39,10 +59,11 @@ class SyncService {
 
       // Start async sync process
       this.performSync(campaign, syncStatus.id, syncType).catch(error => {
-        console.error(`Sync failed for campaign ${campaignId}:`, error);
+        console.error(`Sync failed for campaign ${actualCampaignId}:`, error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
         storage.updateSyncStatus(syncStatus.id, {
           status: 'failed',
-          errorMessage: error.message,
+          errorMessage,
           completedAt: new Date(),
         });
       });
@@ -50,7 +71,7 @@ class SyncService {
       return syncStatus.id;
     } catch (error) {
       console.error('Error starting sync:', error);
-      throw error;
+      throw error instanceof Error ? error : new Error('Unknown sync error');
     }
   }
 
@@ -97,19 +118,22 @@ class SyncService {
       try {
         await this.syncCampaignTiers(campaign, accessToken, syncId);
       } catch (error) {
-        console.warn('Campaign tiers sync failed (may not be available):', error.message);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.warn('Campaign tiers sync failed (may not be available):', errorMessage);
       }
       
       try {
         await this.syncCampaignGoals(campaign, accessToken, syncId);
       } catch (error) {
-        console.warn('Campaign goals sync failed (may not be available):', error.message);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.warn('Campaign goals sync failed (may not be available):', errorMessage);
       }
       
       try {
         await this.syncCampaignBenefits(campaign, accessToken, syncId);
       } catch (error) {
-        console.warn('Campaign benefits sync failed (may not be available):', error.message);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        console.warn('Campaign benefits sync failed (may not be available):', errorMessage);
       }
       
       // Update campaign stats
