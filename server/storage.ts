@@ -57,7 +57,7 @@ export interface IStorage {
   exportPatronsCSV(userId: string, campaignId?: string): Promise<string>;
 
   // Post operations
-  getPosts(userId: string, campaignId?: string, page?: number, limit?: number): Promise<{ posts: Post[]; total: number }>;
+  getPosts(userId: string, campaignId?: string, page?: number, limit?: number, search?: string, postType?: string): Promise<{ posts: (Post & { campaignTitle?: string })[]; total: number }>;
   upsertPost(post: InsertPost): Promise<Post>;
 
   // Sync operations
@@ -307,7 +307,9 @@ export class DatabaseStorage implements IStorage {
     userId: string,
     campaignId?: string,
     page: number = 1,
-    limit: number = 20
+    limit: number = 20,
+    search?: string,
+    postType?: string
   ): Promise<{ posts: Post[]; total: number }> {
     const offset = (page - 1) * limit;
 
@@ -325,16 +327,49 @@ export class DatabaseStorage implements IStorage {
 
     let whereConditions: SQL<unknown> = inArray(posts.campaignId, campaignIds);
 
+    // Filter by specific campaign
     if (campaignId && campaignId !== "all") {
       const additionalCondition = eq(posts.campaignId, parseInt(campaignId));
       const result = and(whereConditions, additionalCondition);
       if (result) whereConditions = result;
     }
 
+    // Filter by search query
+    if (search && search.trim()) {
+      const searchCondition = or(
+        like(posts.title, `%${search}%`),
+        like(posts.content, `%${search}%`)
+      );
+      const result = and(whereConditions, searchCondition);
+      if (result) whereConditions = result;
+    }
+
+    // Filter by post type
+    if (postType && postType !== "all") {
+      let typeCondition;
+      if (postType === "public") {
+        typeCondition = eq(posts.isPublic, true);
+      } else if (postType === "paid") {
+        typeCondition = eq(posts.isPaid, true);
+      } else if (postType === "patron") {
+        typeCondition = and(eq(posts.isPublic, false), eq(posts.isPaid, false));
+      }
+      
+      if (typeCondition) {
+        const result = and(whereConditions, typeCondition);
+        if (result) whereConditions = result;
+      }
+    }
+
+    // Get posts with campaign information
     const [postsList, [{ total }]] = await Promise.all([
       db
-        .select()
+        .select({
+          ...posts,
+          campaignTitle: patreonCampaigns.title,
+        })
         .from(posts)
+        .leftJoin(patreonCampaigns, eq(posts.campaignId, patreonCampaigns.id))
         .where(whereConditions)
         .orderBy(desc(posts.publishedAt))
         .limit(limit)
@@ -342,11 +377,12 @@ export class DatabaseStorage implements IStorage {
       db
         .select({ total: sql<number>`count(*)` })
         .from(posts)
+        .leftJoin(patreonCampaigns, eq(posts.campaignId, patreonCampaigns.id))
         .where(whereConditions),
     ]);
 
     return {
-      posts: postsList,
+      posts: postsList as (Post & { campaignTitle: string | null })[],
       total: total || 0,
     };
   }

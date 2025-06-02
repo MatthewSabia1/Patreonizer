@@ -95,7 +95,13 @@ export default function Posts() {
 
   // Fetch posts with filters
   const { data: postsData, isLoading: postsLoading } = useQuery<PostsResponse>({
-    queryKey: ["/api/posts", selectedCampaign, currentPage, pageSize, searchQuery, postType],
+    queryKey: ["/api/posts", { 
+      campaignId: selectedCampaign, 
+      page: currentPage, 
+      limit: pageSize, 
+      search: searchQuery, 
+      postType: postType 
+    }],
     retry: false,
   });
 

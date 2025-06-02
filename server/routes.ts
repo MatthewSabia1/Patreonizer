@@ -174,13 +174,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/posts', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const { campaignId, page = '1', limit = '20' } = req.query;
+      const { campaignId, page = '1', limit = '20', search, postType } = req.query;
       
       const posts = await storage.getPosts(
         userId,
-        campaignId as string,
+        campaignId === 'all' ? undefined : campaignId as string,
         parseInt(page as string),
-        parseInt(limit as string)
+        parseInt(limit as string),
+        search as string,
+        postType as string
       );
       res.json(posts);
     } catch (error) {
