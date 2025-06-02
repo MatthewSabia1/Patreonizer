@@ -199,7 +199,7 @@ class PatreonAPI {
 
   async getCampaignPosts(accessToken: string, campaignId: string, cursor?: string) {
     const params: any = {
-      'fields[post]': 'title,content,url,embed_data,embed_url,is_public,is_paid,published_at,app_id,app_status,like_count,comment_count,num_likes,num_comments',
+      'fields[post]': 'title,content,url,embed_data,embed_url,is_public,is_paid,published_at,app_id,app_status',
       'fields[user]': 'full_name,image_url,url',
       'fields[campaign]': 'creation_name',
       'include': 'user,campaign',
@@ -222,7 +222,7 @@ class PatreonAPI {
 
   async getPost(accessToken: string, postId: string) {
     const response = await this.makeRequest(`/posts/${postId}`, accessToken, {
-      'fields[post]': 'title,content,url,embed_data,embed_url,is_public,is_paid,published_at,app_id,app_status,like_count,comment_count,num_likes,num_comments',
+      'fields[post]': 'title,content,url,embed_data,embed_url,is_public,is_paid,published_at,app_id,app_status',
       'fields[user]': 'full_name,image_url,url',
       'fields[campaign]': 'creation_name',
       'include': 'user,campaign',
