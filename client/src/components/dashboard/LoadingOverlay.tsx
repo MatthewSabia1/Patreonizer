@@ -1,13 +1,15 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { RotateCcw, X } from "lucide-react";
 
 interface LoadingOverlayProps {
   isVisible: boolean;
   progress?: number;
   message?: string;
   details?: string;
+  onClose?: () => void;
 }
 
 export function LoadingOverlay({ 

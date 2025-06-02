@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, X } from "lucide-react";
 
 interface LoadingModalProps {
   isOpen?: boolean;
@@ -56,8 +57,22 @@ export function LoadingModal({
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <Card className="w-full max-w-md mx-auto border-border glass">
+            <Card className="w-full max-w-md mx-auto border-border glass relative">
               <CardContent className="pt-6">
+                {/* Close Button */}
+                {onClose && (
+                  <div className="absolute top-4 right-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onClose}
+                      className="h-8 w-8 p-0 hover:bg-muted"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                
                 <div className="text-center">
                   <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <RefreshCw className="w-8 h-8 text-primary animate-spin" />
@@ -88,7 +103,7 @@ export function LoadingModal({
                   <div className="mt-6 p-3 bg-muted/50 rounded-lg">
                     <p className="text-xs text-muted-foreground">
                       This may take a few minutes for accounts with large amounts of data.
-                      You can safely close this window and the sync will continue in the background.
+                      You can close this dialog and the sync will continue in the background.
                     </p>
                   </div>
                 </div>
