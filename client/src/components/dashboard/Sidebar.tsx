@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChartArea, 
   Users, 
@@ -8,12 +8,16 @@ import {
   Link2, 
   Download,
   Settings,
-  Plus
+  Plus,
+  Menu,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
+import { useScreenSize } from "@/hooks/use-mobile";
+import { useState, useEffect } from "react";
 import type { PatreonCampaign, User } from "@/lib/types";
 
 const navigation = [
@@ -31,18 +35,37 @@ interface SidebarProps {
 export function Sidebar({ onConnectPatreon }: SidebarProps) {
   const [location] = useLocation();
   const { user } = useAuth();
+  const { isMobile, isTablet } = useScreenSize();
+  const [isOpen, setIsOpen] = useState(false);
 
   const { data: campaigns = [] } = useQuery<PatreonCampaign[]>({
     queryKey: ["/api/campaigns"],
   });
 
-  return (
-    <motion.aside 
-      initial={{ x: -20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className="w-64 bg-sidebar/95 backdrop-glass border-r border-sidebar-border flex flex-col h-full shadow-card-soft"
-    >
+  // Close mobile menu when route changes
+  useEffect(() => {
+    if (isMobile) {
+      setIsOpen(false);
+    }
+  }, [location, isMobile]);
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (isMobile && isOpen) {
+        const sidebar = document.getElementById('mobile-sidebar');
+        if (sidebar && !sidebar.contains(event.target as Node)) {
+          setIsOpen(false);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobile, isOpen]);
+
+  const SidebarContent = () => (
+    <div className={`${isMobile ? 'w-80' : 'w-64'} bg-sidebar/95 backdrop-glass border-r border-sidebar-border flex flex-col h-full shadow-card-soft`}>
       {/* Header */}
       <div className="p-6 border-b border-sidebar-border/50">
         <motion.div 
@@ -60,6 +83,16 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
             </h1>
             <p className="text-xs text-sidebar-foreground/50 font-medium tracking-wide">Multi-Campaign Manager</p>
           </div>
+          {isMobile && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsOpen(false)}
+              className="ml-auto p-2 hover:bg-sidebar-accent/50"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          )}
         </motion.div>
       </div>
 
@@ -82,7 +115,7 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
                   whileTap={{ scale: 0.99 }}
                   transition={{ duration: 0.15, ease: "easeOut" }}
                   className={`
-                    sidebar-link flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ease-out relative group
+                    sidebar-link flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ease-out relative group cursor-pointer
                     ${isActive 
                       ? 'active bg-gradient-to-r from-accent/15 to-accent/5 text-accent border-accent/30 shadow-glow' 
                       : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60 border-transparent'
@@ -192,6 +225,69 @@ export function Sidebar({ onConnectPatreon }: SidebarProps) {
           </Button>
         </motion.div>
       </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile Header with Menu Button */}
+        <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-sidebar/95 backdrop-blur-lg border-b border-sidebar-border/50 px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-accent via-accent to-accent/90 rounded-lg flex items-center justify-center">
+                <ChartArea className="h-4 w-4 text-accent-foreground" />
+              </div>
+              <h1 className="text-lg font-bold text-sidebar-foreground bg-gradient-to-r from-accent via-accent/95 to-accent/80 bg-clip-text text-transparent">
+                Patreonizer
+              </h1>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsOpen(true)}
+              className="p-2 hover:bg-sidebar-accent/50"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Mobile Sidebar Overlay */}
+        <AnimatePresence>
+          {isOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+                onClick={() => setIsOpen(false)}
+              />
+              <motion.div
+                id="mobile-sidebar"
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                className="fixed left-0 top-0 bottom-0 z-50"
+              >
+                <SidebarContent />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+      </>
+    );
+  }
+
+  return (
+    <motion.aside 
+      initial={{ x: -20, opacity: 0 }}
+      animate={{ x: 0, opacity: 1 }}
+      transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+    >
+      <SidebarContent />
     </motion.aside>
   );
 }
