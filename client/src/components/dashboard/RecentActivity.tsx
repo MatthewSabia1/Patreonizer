@@ -6,7 +6,8 @@ import {
   Activity,
   Clock,
   ArrowRight,
-  ExternalLink
+  ExternalLink,
+  Users
 } from "lucide-react";
 
 interface ActivityItem {
