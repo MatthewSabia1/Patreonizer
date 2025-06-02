@@ -6,8 +6,7 @@ import {
   Activity,
   Clock,
   ArrowRight,
-  ExternalLink,
-  Users
+  ExternalLink
 } from "lucide-react";
 
 interface ActivityItem {
@@ -87,7 +86,7 @@ export function RecentActivity({ activities = [], isLoading }: RecentActivityPro
           ) : (
             <div className="space-y-2">
               {activities.slice(0, 5).map((activity, index) => {
-                const Icon = activity.icon || Users;
+                const Icon = activity.icon;
                 
                 return (
                   <motion.div

@@ -307,12 +307,7 @@ export default function ConnectedPages() {
                   <div>
                     <p className="text-sm text-muted-foreground">Total Patrons</p>
                     <p className="text-2xl font-bold">
-                      {campaigns.reduce((sum: number, campaign: Campaign) => {
-                        const patronCount = typeof campaign.actualPatronCount === 'number' 
-                          ? campaign.actualPatronCount 
-                          : campaign.patronCount || 0;
-                        return sum + patronCount;
-                      }, 0)}
+                      {campaigns.reduce((sum: number, campaign: Campaign) => sum + (campaign.actualPatronCount || campaign.patronCount), 0)}
                     </p>
                   </div>
                 </div>
@@ -329,13 +324,7 @@ export default function ConnectedPages() {
                     <p className="text-sm text-muted-foreground">Total Revenue</p>
                     <p className="text-2xl font-bold">
                       {formatCurrency(
-                        campaigns.reduce((sum: number, campaign: Campaign) => {
-                          const revenue = typeof campaign.actualMonthlyRevenue === 'number' 
-                            ? campaign.actualMonthlyRevenue 
-                            : typeof campaign.pledgeSum === 'string' ? parseFloat(campaign.pledgeSum) || 0 
-                            : campaign.pledgeSum || 0;
-                          return sum + revenue;
-                        }, 0).toString()
+                        campaigns.reduce((sum: number, campaign: Campaign) => sum + (campaign.actualMonthlyRevenue || parseFloat(campaign.pledgeSum)), 0).toString()
                       )}
                     </p>
                   </div>

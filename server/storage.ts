@@ -598,8 +598,8 @@ export class DatabaseStorage implements IStorage {
     const [recentRevenue, previousRevenue] = await Promise.all([
       db
         .select({
-          revenue: sql<number>`avg(${revenueData.pledgeSum})`,
-          patrons: sql<number>`avg(${revenueData.patronCount})`,
+          revenue: sql<number>`sum(${revenueData.pledgeSum})`,
+          patrons: sql<number>`sum(${revenueData.patronCount})`,
         })
         .from(revenueData)
         .where(
@@ -610,8 +610,8 @@ export class DatabaseStorage implements IStorage {
         ),
       db
         .select({
-          revenue: sql<number>`avg(${revenueData.pledgeSum})`,
-          patrons: sql<number>`avg(${revenueData.patronCount})`,
+          revenue: sql<number>`sum(${revenueData.pledgeSum})`,
+          patrons: sql<number>`sum(${revenueData.patronCount})`,
         })
         .from(revenueData)
         .where(
@@ -623,17 +623,17 @@ export class DatabaseStorage implements IStorage {
         ),
     ]);
 
-    // Calculate changes with proper null checks
-    const revenueChange = previousRevenue[0]?.revenue && previousRevenue[0].revenue > 0
+    // Calculate changes
+    const revenueChange = previousRevenue[0]?.revenue
       ? ((currentRevenue - previousRevenue[0].revenue) / previousRevenue[0].revenue) * 100
       : 0;
 
-    const patronChange = previousRevenue[0]?.patrons && previousRevenue[0].patrons > 0
+    const patronChange = previousRevenue[0]?.patrons
       ? ((currentPatrons - previousRevenue[0].patrons) / previousRevenue[0].patrons) * 100
       : 0;
 
     const avgPerPatron = currentPatrons > 0 ? currentRevenue / currentPatrons : 0;
-    const prevAvgPerPatron = (previousRevenue[0]?.patrons && previousRevenue[0].patrons > 0 && previousRevenue[0]?.revenue)
+    const prevAvgPerPatron = previousRevenue[0]?.patrons > 0 
       ? previousRevenue[0].revenue / previousRevenue[0].patrons 
       : 0;
     const avgChange = prevAvgPerPatron > 0 

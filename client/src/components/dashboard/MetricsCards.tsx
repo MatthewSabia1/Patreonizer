@@ -30,7 +30,7 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
   const metrics = [
     {
       title: "Monthly Revenue",
-      value: data && typeof data.monthlyRevenue === 'number' ? formatCurrency(data.monthlyRevenue) : formatCurrency(0),
+      value: data ? formatCurrency(data.monthlyRevenue) : formatCurrency(0),
       change: data?.revenueChange || 0,
       icon: DollarSign,
       color: "text-foreground",
@@ -39,7 +39,7 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
     },
     {
       title: "Total Patrons", 
-      value: data && typeof data.totalPatrons === 'number' ? data.totalPatrons.toLocaleString() : "0",
+      value: data?.totalPatrons.toLocaleString() || "0",
       change: data?.patronChange || 0,
       icon: Users,
       color: "text-foreground",
@@ -48,7 +48,7 @@ export function MetricsCards({ data, isLoading }: MetricsCardsProps) {
     },
     {
       title: "Avg Per Patron",
-      value: data && typeof data.avgPerPatron === 'number' ? formatCurrency(data.avgPerPatron) : formatCurrency(0),
+      value: data ? formatCurrency(data.avgPerPatron) : formatCurrency(0),
       change: data?.avgChange || 0,
       icon: HandHeart,
       color: "text-foreground",

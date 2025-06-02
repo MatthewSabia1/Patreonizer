@@ -369,7 +369,7 @@ export default function Dashboard() {
               isMobile ? 'mobile-gap-4' : isTablet ? 'tablet-card-grid' : 'lg:grid-cols-3 gap-8'
             }`}>
               <CampaignTable campaigns={campaigns} isLoading={campaignsLoading} />
-              <RecentActivity activities={activity} isLoading={activityLoading} />
+              <RecentActivity activities={[]} isLoading={activityLoading} />
             </div>
           </motion.section>
         </div>
