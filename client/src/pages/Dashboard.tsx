@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [syncProgress, setSyncProgress] = useState(0);
   const [showSyncOverlay, setShowSyncOverlay] = useState(false);
+  const [syncOverlayDismissed, setSyncOverlayDismissed] = useState(false);
   const [selectedCampaign, setSelectedCampaign] = useState("all");
   const [timeRange, setTimeRange] = useState("30");
   
@@ -159,17 +160,20 @@ export default function Dashboard() {
     if (activeSyncs.length > 0) {
       const latestSync = activeSyncs[0];
       if (latestSync.status === 'in_progress') {
-        setShowSyncOverlay(true);
+        // Only show overlay if not dismissed
+        setShowSyncOverlay(!syncOverlayDismissed);
         setSyncProgress(latestSync.progress || 0);
       } else {
         setShowSyncOverlay(false);
         setSyncProgress(0);
+        setSyncOverlayDismissed(false); // Reset dismissal when sync completes
       }
     } else {
       setShowSyncOverlay(false);
       setSyncProgress(0);
+      setSyncOverlayDismissed(false); // Reset dismissal when no active syncs
     }
-  }, [activeSyncs]);
+  }, [activeSyncs, syncOverlayDismissed]);
 
   const handleSyncAll = () => {
     syncMutation.mutate({ syncType: 'full' });
@@ -181,6 +185,11 @@ export default function Dashboard() {
 
   const handleViewPatrons = () => {
     window.location.href = '/patrons';
+  };
+
+  const handleCloseSyncOverlay = () => {
+    setSyncOverlayDismissed(true);
+    setShowSyncOverlay(false);
   };
 
   if (authLoading) {
@@ -372,6 +381,7 @@ export default function Dashboard() {
         progress={syncProgress}
         message="Syncing Campaign Data"
         details="Importing all your Patreon data. This may take a few minutes."
+        onClose={handleCloseSyncOverlay}
       />
 
       <ConnectPatreonModal

@@ -16,7 +16,8 @@ export function LoadingOverlay({
   isVisible, 
   progress = 0, 
   message = "Syncing Campaign Data",
-  details = "Importing all your Patreon data for the first time. This may take a few minutes."
+  details = "Importing all your Patreon data for the first time. This may take a few minutes.",
+  onClose
 }: LoadingOverlayProps) {
   return (
     <AnimatePresence>
@@ -33,8 +34,22 @@ export function LoadingOverlay({
             exit={{ scale: 0.95, opacity: 0 }}
             transition={{ type: "spring", duration: 0.3 }}
           >
-            <Card className="w-full max-w-md mx-4 bg-card border-border">
+            <Card className="w-full max-w-md mx-4 bg-card border-border relative">
               <CardContent className="p-8">
+                {/* Close Button */}
+                {onClose && (
+                  <div className="absolute top-4 right-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={onClose}
+                      className="h-8 w-8 p-0 hover:bg-muted"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+                
                 <div className="text-center">
                   <motion.div
                     animate={{ rotate: 360 }}
@@ -55,13 +70,20 @@ export function LoadingOverlay({
                       <span>{Math.round(progress)}%</span>
                     </div>
                     
-                    <motion.p
+                    <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="text-xs text-muted-foreground"
+                      className="text-xs text-muted-foreground space-y-2"
                     >
-                      Estimated time remaining: {Math.max(1, Math.ceil((100 - progress) / 20))} minutes
-                    </motion.p>
+                      <p>
+                        Estimated time remaining: {Math.max(1, Math.ceil((100 - progress) / 20))} minutes
+                      </p>
+                      {onClose && (
+                        <p className="bg-muted/50 p-2 rounded">
+                          You can close this dialog and the sync will continue in the background.
+                        </p>
+                      )}
+                    </motion.div>
                   </div>
                 </div>
               </CardContent>
